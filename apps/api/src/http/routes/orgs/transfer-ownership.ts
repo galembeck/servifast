@@ -80,7 +80,7 @@ export async function transferOwnershipRoute(app: FastifyInstance) {
 							},
 						},
 						data: {
-							role: "ADMIN",
+							role: "OWNER",
 						},
 					}),
 

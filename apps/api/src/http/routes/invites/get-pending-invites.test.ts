@@ -10,10 +10,10 @@ import {
 } from "vitest";
 import { buildApp } from "@/test/helpers/build-app";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -51,7 +51,7 @@ describe("GET /invites/pending", () => {
 			{
 				id: faker.string.uuid(),
 				email,
-				role: "MEMBER" as const,
+				role: "WAITER" as const,
 				createdAt: new Date(),
 				organization: { name: faker.company.name() },
 				author: {
@@ -63,7 +63,7 @@ describe("GET /invites/pending", () => {
 			{
 				id: faker.string.uuid(),
 				email,
-				role: "ADMIN" as const,
+				role: "OWNER" as const,
 				createdAt: new Date(),
 				organization: { name: faker.company.name() },
 				author: null,
@@ -81,8 +81,8 @@ describe("GET /invites/pending", () => {
 		expect(response.statusCode).toBe(200);
 		expect(JSON.parse(response.body)).toMatchObject({
 			invites: [
-				{ id: invites[0]?.id, role: "MEMBER" },
-				{ id: invites[1]?.id, role: "ADMIN", author: null },
+				{ id: invites[0]?.id, role: "WAITER" },
+				{ id: invites[1]?.id, role: "OWNER", author: null },
 			],
 		});
 	});

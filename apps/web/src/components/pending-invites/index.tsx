@@ -51,7 +51,9 @@ export function PendingInvites() {
 				</span>
 
 				{data?.invites.length === 0 && (
-					<p className="text-muted-foreground text-sm">No invites found :/</p>
+					<p className="text-center text-muted-foreground text-sm">
+						No invites found :/
+					</p>
 				)}
 
 				{data?.invites.map((invite) => (

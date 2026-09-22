@@ -11,10 +11,10 @@ import {
 import { buildApp } from "@/test/helpers/build-app";
 import { mockMembership } from "@/test/helpers/membership";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -33,9 +33,9 @@ describe("GET /organizations/:slug/billing", () => {
 		resetPrismaMocks();
 	});
 
-	it("returns billing info for ADMIN", async () => {
+	it("returns billing info for OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 		const token = signToken(app, userId);
 
 		prismaMock.member.count.mockResolvedValueOnce(3);
@@ -57,9 +57,9 @@ describe("GET /organizations/:slug/billing", () => {
 		});
 	});
 
-	it("returns 401 UNAUTHORIZED when user is MEMBER", async () => {
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
@@ -80,6 +80,40 @@ describe("GET /organizations/:slug/billing", () => {
 		const token = signToken(app, userId);
 
 		prismaMock.member.count.mockResolvedValueOnce(1);
+		prismaMock.project.count.mockResolvedValueOnce(1);
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/organizations/${organization.slug}/billing`,
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+	});
+
+	it("returns billing info for MANAGER", async () => {
+		const userId = faker.string.uuid();
+		const { organization } = mockMembership(userId, "MANAGER");
+		const token = signToken(app, userId);
+
+		prismaMock.member.count.mockResolvedValueOnce(2);
+		prismaMock.project.count.mockResolvedValueOnce(1);
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/organizations/${organization.slug}/billing`,
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+	});
+
+	it("returns billing info for CASHIER", async () => {
+		const userId = faker.string.uuid();
+		const { organization } = mockMembership(userId, "CASHIER");
+		const token = signToken(app, userId);
+
+		prismaMock.member.count.mockResolvedValueOnce(2);
 		prismaMock.project.count.mockResolvedValueOnce(1);
 
 		const response = await app.inject({

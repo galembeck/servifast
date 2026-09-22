@@ -9,15 +9,23 @@ import type { User } from "./models/user.model";
 import { permissions } from "./permissions";
 import { billingSubject } from "./subjects/billing.subject";
 import { inviteSubject } from "./subjects/invite.subject";
+import { menuSubject } from "./subjects/menu.subject";
+import { orderSubject } from "./subjects/order.subject";
 import { organizationSubject } from "./subjects/organization.subject";
 import { projectSubject } from "./subjects/project.subject";
+import { shiftSubject } from "./subjects/shift.subject";
+import { tableSubject } from "./subjects/table.subject";
 import { userSubject } from "./subjects/user.subject";
 
 const appAbilitiesSchema = z.union([
 	billingSubject,
 	inviteSubject,
+	menuSubject,
+	orderSubject,
 	organizationSubject,
 	projectSubject,
+	shiftSubject,
+	tableSubject,
 	userSubject,
 
 	z.tuple([z.literal("manage"), z.literal("all")]),

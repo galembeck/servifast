@@ -11,10 +11,10 @@ import {
 import { buildApp } from "@/test/helpers/build-app";
 import { mockMembership } from "@/test/helpers/membership";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -52,9 +52,9 @@ describe("GET /organizations/:slug/projects", () => {
 		resetPrismaMocks();
 	});
 
-	it("returns all projects in the organization for an ADMIN", async () => {
+	it("returns all projects in the organization for an OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 		const projects = [
 			makeProject(organization.id),
 			makeProject(organization.id),
@@ -79,12 +79,9 @@ describe("GET /organizations/:slug/projects", () => {
 		});
 	});
 
-	it("returns all projects in the organization for a MEMBER", async () => {
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
-		const projects = [makeProject(organization.id)];
-
-		prismaMock.project.findMany.mockResolvedValue(projects);
+		const { organization } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 
@@ -94,13 +91,15 @@ describe("GET /organizations/:slug/projects", () => {
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
-		expect(response.statusCode).toBe(200);
-		expect(JSON.parse(response.body).projects).toHaveLength(1);
+		expect(response.statusCode).toBe(401);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "UNAUTHORIZED",
+		});
 	});
 
 	it("returns an empty list when the organization has no projects", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.project.findMany.mockResolvedValue([]);
 

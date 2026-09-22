@@ -173,7 +173,7 @@ Protected routes require both a valid JWT and a mocked membership. Use `mockMemb
 
 ```typescript
 const userId = faker.string.uuid();
-const { organization, membership } = mockMembership(userId, "ADMIN"); // role: ADMIN | MEMBER | BILLING
+const { organization, membership } = mockMembership(userId, "OWNER"); // role: OWNER | MANAGER | WAITER | CASHIER | KITCHEN | BILLING
 const token = signToken(app, userId);
 
 const response = await app.inject({
@@ -183,13 +183,13 @@ const response = await app.inject({
 });
 ```
 
-To simulate a non-owner ADMIN (for RBAC update/transfer_ownership tests), override `member.findFirst` after calling `mockMembership`:
+To simulate a non-owner OWNER (for RBAC update/transfer_ownership tests), override `member.findFirst` after calling `mockMembership`:
 
 ```typescript
-const { organization } = mockMembership(userId, "ADMIN");
+const { organization } = mockMembership(userId, "OWNER");
 prismaMock.member.findFirst.mockResolvedValue({
   id: faker.string.uuid(),
-  role: "ADMIN",
+  role: "OWNER",
   organizationId: organization.id,
   userId,
   organization: { ...organization, ownerId: faker.string.uuid() }, // different owner
@@ -198,11 +198,16 @@ prismaMock.member.findFirst.mockResolvedValue({
 
 ### RBAC permission matrix
 
-| Role | Organization | Project | Invite |
-|------|-------------|---------|--------|
-| ADMIN | manage all; update/transfer_ownership only if `ownerId === userId` | manage all | manage all |
-| MEMBER | — | create, get; update/delete own (`ownerId === userId`) | — |
-| BILLING | — | — | — |
+See `docs/PERMISSIONS.md` at the repo root for the full role/permission breakdown (roles: `OWNER`, `MANAGER`, `WAITER`, `CASHIER`, `KITCHEN`, `BILLING`). Quick reference for the routes that exist today (Organization/Invite/User/Billing/Project — the last two are SaaS-template leftovers, not restaurant domain):
+
+| Role | Organization | Invite | User (members) | Billing | Project |
+|------|-------------|--------|-----------------|---------|---------|
+| OWNER | manage all; update/transfer_ownership only if `ownerId === userId` | manage all | manage all | manage all | manage all |
+| MANAGER | — | create, get, delete | get, update | get | — |
+| WAITER / CASHIER / KITCHEN | — | — | — | get (CASHIER only) | — |
+| BILLING | — | — | — | manage all | — |
+
+`Order`, `Table`, `Menu`, `Shift` are also defined as CASL subjects (`packages/rbac/src/subjects/`) for WAITER/CASHIER/KITCHEN/MANAGER, but have no backing routes/models yet.
 
 ### Determining test cases from a route file
 

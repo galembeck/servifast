@@ -96,15 +96,15 @@ async function seed() {
 					data: [
 						{
 							userId: user.id,
-							role: "ADMIN",
+							role: "OWNER",
 						},
 						{
 							userId: anotherUser.id,
-							role: "MEMBER",
+							role: "WAITER",
 						},
 						{
 							userId: anotherUser2.id,
-							role: "MEMBER",
+							role: "KITCHEN",
 						},
 					],
 				},
@@ -162,15 +162,15 @@ async function seed() {
 					data: [
 						{
 							userId: user.id,
-							role: "MEMBER",
+							role: "WAITER",
 						},
 						{
 							userId: anotherUser.id,
-							role: "ADMIN",
+							role: "MANAGER",
 						},
 						{
 							userId: anotherUser2.id,
-							role: "MEMBER",
+							role: "CASHIER",
 						},
 					],
 				},
@@ -232,11 +232,11 @@ async function seed() {
 						},
 						{
 							userId: anotherUser.id,
-							role: "ADMIN",
+							role: "OWNER",
 						},
 						{
 							userId: anotherUser2.id,
-							role: "MEMBER",
+							role: "WAITER",
 						},
 					],
 				},

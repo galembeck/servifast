@@ -33,9 +33,9 @@ describe("DELETE /organizations/:slug", () => {
 		resetPrismaMocks();
 	});
 
-	it("deletes the organization when user is ADMIN", async () => {
+	it("deletes the organization when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.organization.delete.mockResolvedValue({ id: organization.id });
 
@@ -50,9 +50,9 @@ describe("DELETE /organizations/:slug", () => {
 		expect(response.statusCode).toBe(204);
 	});
 
-	it("returns 401 UNAUTHORIZED when user is MEMBER", async () => {
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 

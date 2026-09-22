@@ -9,10 +9,10 @@ import {
 	vi,
 } from "vitest";
 import { buildApp } from "@/test/helpers/build-app";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -36,7 +36,7 @@ describe("GET /invites/:inviteId", () => {
 		const invite = {
 			id: inviteId,
 			email: faker.internet.email(),
-			role: "MEMBER" as const,
+			role: "WAITER" as const,
 			createdAt: new Date(),
 			author: {
 				id: faker.string.uuid(),
@@ -76,7 +76,7 @@ describe("GET /invites/:inviteId", () => {
 		const invite = {
 			id: inviteId,
 			email: faker.internet.email(),
-			role: "ADMIN" as const,
+			role: "OWNER" as const,
 			createdAt: new Date(),
 			author: null,
 			organization: {

@@ -1,9 +1,8 @@
 import { faker } from "@faker-js/faker";
+import type { Role } from "@repo/rbac/src/types/role";
 import { prismaMock } from "../mocks/prisma";
 
-type Role = "ADMIN" | "MEMBER" | "BILLING";
-
-export function mockMembership(userId: string, role: Role = "ADMIN") {
+export function mockMembership(userId: string, role: Role = "OWNER") {
 	const orgId = faker.string.uuid();
 	const organization = {
 		id: orgId,

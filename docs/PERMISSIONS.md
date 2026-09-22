@@ -42,41 +42,48 @@ This project contains all the necessary boilerplate to setup a multi-tenant SaaS
 
 ## RBAC
 
-Roles & permissions.
+Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); the `Role` enum lives in `packages/rbac/src/types/role.ts` and `apps/api/prisma/schema.prisma`.
 
 ### Roles
 
-- Owner (count as administrator)
-- Administrator
-- Member
-- Billing (one per organization)
-- Anonymous
+- **OWNER** — full access (`manage all`). Same as the old template's ADMIN, restaurant-branded.
+- **MANAGER** — runs day-to-day floor operations: orders, tables, menu, shifts, staff invites; can view (not manage) billing.
+- **WAITER** — takes/manages orders, views/updates tables, views the menu.
+- **CASHIER** — processes order payments, opens/closes the register (shift), views billing.
+- **KITCHEN** — views/updates orders (prep status), views the menu.
+- **BILLING** — manages billing/financial reporting; views orders for reconciliation.
+- **Anonymous** — no membership, no access.
+
+`Order`, `Table`, `Menu`, and `Shift` are defined as CASL subjects (`packages/rbac/src/subjects/`) but don't have backing Prisma models or routes yet — they're set up ahead of the actual order/table/menu features so permission checks are ready to wire in.
 
 ### Permissions table
 
-|                          | Administrator | Member | Billing | Anonymous |
-| ------------------------ | ------------- | ------ | ------- | --------- |
-| Update organization      | ✅            | ❌     | ❌      | ❌        |
-| Delete organization      | ✅            | ❌     | ❌      | ❌        |
-| Invite a member          | ✅            | ❌     | ❌      | ❌        |
-| Revoke an invite         | ✅            | ❌     | ❌      | ❌        |
-| List members             | ✅            | ✅     | ✅      | ❌        |
-| Transfer ownership       | ⚠️            | ❌     | ❌      | ❌        |
-| Update member role       | ✅            | ❌     | ❌      | ❌        |
-| Delete member            | ✅            | ⚠️     | ❌      | ❌        |
-| List projects            | ✅            | ✅     | ✅      | ❌        |
-| Create a new project     | ✅            | ✅     | ❌      | ❌        |
-| Update a project         | ✅            | ⚠️     | ❌      | ❌        |
-| Delete a project         | ✅            | ⚠️     | ❌      | ❌        |
-| Get billing details      | ✅            | ❌     | ✅      | ❌        |
-| Export billing details   | ✅            | ❌     | ✅      | ❌        |
+|                          | Owner | Manager | Waiter | Cashier | Kitchen | Billing | Anonymous |
+| ------------------------ | ----- | ------- | ------ | ------- | ------- | ------- | --------- |
+| Update organization      | ⚠️    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Delete organization      | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Transfer ownership       | ⚠️    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Invite a member          | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Revoke an invite         | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| List members             | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Update member role       | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Delete member            | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Manage orders            | ✅    | ✅      | ✅¹    | ✅²     | ✅²     | ❌      | ❌        |
+| View orders               | ✅    | ✅      | ✅     | ✅      | ✅      | ✅      | ❌        |
+| Manage tables            | ✅    | ✅      | ✅²    | ❌      | ❌      | ❌      | ❌        |
+| Manage menu               | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| View menu                 | ✅    | ✅      | ✅     | ❌      | ✅      | ❌      | ❌        |
+| Manage shift/register     | ✅    | ✅      | ❌     | ✅      | ❌      | ❌      | ❌        |
+| Get billing details      | ✅    | ✅      | ❌     | ✅      | ❌      | ✅      | ❌        |
+| Manage billing            | ✅    | ❌      | ❌     | ❌      | ❌      | ✅      | ❌        |
+| List/manage projects\*   | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
 
-> ✅ = allowed
-> ❌ = not allowed
-> ⚠️ = allowed w/ conditions
+> ✅ = allowed  ❌ = not allowed  ⚠️ = allowed w/ conditions
+>
+> ¹ WAITER can create/view/update orders (not delete). ² CASHIER/KITCHEN can view/update orders but not create; WAITER can view/update tables but not delete.
+>
+> \* Projects/Organizations are leftovers from the original SaaS template's multi-tenancy layer, not part of the restaurant domain — only OWNER can touch them via `manage all`.
 
 #### Conditions
 
-- Only owners may transfer organization ownership;
-- Only administrators and project authors may update/delete the project;
-- Members can leave their own organization;
+- Only the organization's owner (`ownerId === user.id`) may transfer ownership or update the organization, even as OWNER.

@@ -33,9 +33,9 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 		resetPrismaMocks();
 	});
 
-	it("deletes the project when user is ADMIN", async () => {
+	it("deletes the project when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
@@ -56,9 +56,9 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 		expect(response.statusCode).toBe(204);
 	});
 
-	it("deletes the project when MEMBER owns it", async () => {
+	it("returns 401 UNAUTHORIZED when WAITER owns the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
@@ -66,7 +66,6 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 			organizationId: organization.id,
 			ownerId: userId,
 		});
-		prismaMock.project.delete.mockResolvedValue({ id: projectId });
 
 		const token = signToken(app, userId);
 
@@ -76,12 +75,15 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
-		expect(response.statusCode).toBe(204);
+		expect(response.statusCode).toBe(401);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "UNAUTHORIZED",
+		});
 	});
 
-	it("returns 401 UNAUTHORIZED when MEMBER does not own the project", async () => {
+	it("returns 401 UNAUTHORIZED when WAITER does not own the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
@@ -106,7 +108,7 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 	it("returns 400 NOT_FOUND when project does not exist in the organization", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.project.findUnique.mockResolvedValue(null);
 

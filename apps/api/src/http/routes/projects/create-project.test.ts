@@ -33,9 +33,9 @@ describe("POST /organizations/:slug/projects", () => {
 		resetPrismaMocks();
 	});
 
-	it("creates a project when user is ADMIN", async () => {
+	it("creates a project when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.create.mockResolvedValue({ id: projectId });
@@ -53,12 +53,9 @@ describe("POST /organizations/:slug/projects", () => {
 		expect(JSON.parse(response.body)).toMatchObject({ projectId });
 	});
 
-	it("creates a project when user is MEMBER", async () => {
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
-		const projectId = faker.string.uuid();
-
-		prismaMock.project.create.mockResolvedValue({ id: projectId });
+		const { organization } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 
@@ -69,8 +66,10 @@ describe("POST /organizations/:slug/projects", () => {
 			body: { name: "New Project", description: "A test project" },
 		});
 
-		expect(response.statusCode).toBe(201);
-		expect(JSON.parse(response.body)).toMatchObject({ projectId });
+		expect(response.statusCode).toBe(401);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "UNAUTHORIZED",
+		});
 	});
 
 	it("returns 401 UNAUTHORIZED when user is BILLING", async () => {

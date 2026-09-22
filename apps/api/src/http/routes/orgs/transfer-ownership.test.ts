@@ -33,14 +33,14 @@ describe("PATCH /organizations/:slug/ownership", () => {
 		resetPrismaMocks();
 	});
 
-	it("transfers ownership when user is ADMIN and owner", async () => {
+	it("transfers ownership when user is OWNER and owner", async () => {
 		const userId = faker.string.uuid();
 		const targetUserId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.member.findUnique.mockResolvedValue({
 			id: faker.string.uuid(),
-			role: "MEMBER",
+			role: "WAITER",
 			organizationId: organization.id,
 			userId: targetUserId,
 		});
@@ -59,9 +59,9 @@ describe("PATCH /organizations/:slug/ownership", () => {
 		expect(prismaMock.$transaction).toHaveBeenCalledOnce();
 	});
 
-	it("returns 401 UNAUTHORIZED when user is MEMBER", async () => {
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 
@@ -80,7 +80,7 @@ describe("PATCH /organizations/:slug/ownership", () => {
 
 	it("returns 400 USER_NOT_MEMBER when target user is not in the organization", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.member.findUnique.mockResolvedValue(null);
 
@@ -99,14 +99,14 @@ describe("PATCH /organizations/:slug/ownership", () => {
 		});
 	});
 
-	it("returns 401 UNAUTHORIZED when ADMIN does not own the organization", async () => {
+	it("returns 401 UNAUTHORIZED when OWNER does not own the organization", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		// Override ownerId to a different user
 		prismaMock.member.findFirst.mockResolvedValue({
 			id: faker.string.uuid(),
-			role: "ADMIN",
+			role: "OWNER",
 			organizationId: organization.id,
 			userId,
 			organization: { ...organization, ownerId: faker.string.uuid() },

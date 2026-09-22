@@ -11,10 +11,10 @@ import {
 import { buildApp } from "@/test/helpers/build-app";
 import { mockMembership } from "@/test/helpers/membership";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -33,9 +33,9 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 		resetPrismaMocks();
 	});
 
-	it("updates the project when user is ADMIN", async () => {
+	it("updates the project when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
@@ -57,9 +57,9 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 		expect(response.statusCode).toBe(204);
 	});
 
-	it("updates the project when MEMBER owns it", async () => {
+	it("returns 401 UNAUTHORIZED when WAITER owns the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
@@ -67,7 +67,6 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 			organizationId: organization.id,
 			ownerId: userId,
 		});
-		prismaMock.project.update.mockResolvedValue({ id: projectId });
 
 		const token = signToken(app, userId);
 
@@ -78,12 +77,15 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 			body: { name: "Updated Name", description: "Updated description" },
 		});
 
-		expect(response.statusCode).toBe(204);
+		expect(response.statusCode).toBe(401);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "UNAUTHORIZED",
+		});
 	});
 
-	it("returns 401 UNAUTHORIZED when MEMBER does not own the project", async () => {
+	it("returns 401 UNAUTHORIZED when WAITER does not own the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
@@ -135,7 +137,7 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 	it("returns 400 NOT_FOUND when project does not exist in the organization", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.project.findUnique.mockResolvedValue(null);
 

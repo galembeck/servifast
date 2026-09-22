@@ -10,10 +10,10 @@ import {
 } from "vitest";
 import { buildApp } from "@/test/helpers/build-app";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -41,7 +41,7 @@ describe("POST /invites/:inviteId/accept", () => {
 		const invite = {
 			id: inviteId,
 			email,
-			role: "MEMBER" as const,
+			role: "WAITER" as const,
 			organizationId: faker.string.uuid(),
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),
@@ -93,7 +93,7 @@ describe("POST /invites/:inviteId/accept", () => {
 		prismaMock.invite.findUnique.mockResolvedValue({
 			id: faker.string.uuid(),
 			email: faker.internet.email(),
-			role: "MEMBER" as const,
+			role: "WAITER" as const,
 			organizationId: faker.string.uuid(),
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),
@@ -119,7 +119,7 @@ describe("POST /invites/:inviteId/accept", () => {
 		prismaMock.invite.findUnique.mockResolvedValue({
 			id: faker.string.uuid(),
 			email: "invite@example.com",
-			role: "MEMBER" as const,
+			role: "WAITER" as const,
 			organizationId: faker.string.uuid(),
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),

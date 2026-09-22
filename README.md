@@ -99,30 +99,26 @@ The web app will be available at `http://localhost:3000`.
 
 ## RBAC
 
-Roles: **Owner**, **Administrator**, **Member**, **Billing**, **Anonymous**
+Roles: **Owner**, **Manager**, **Waiter**, **Cashier**, **Kitchen**, **Billing**, **Anonymous**
 
-|                        | Administrator | Member | Billing | Anonymous |
-|------------------------|:---:|:---:|:---:|:---:|
-| Update organization    | ✅ | ❌ | ❌ | ❌ |
-| Delete organization    | ✅ | ❌ | ❌ | ❌ |
-| Invite a member        | ✅ | ❌ | ❌ | ❌ |
-| Revoke an invite       | ✅ | ❌ | ❌ | ❌ |
-| List members           | ✅ | ✅ | ✅ | ❌ |
-| Transfer ownership     | ⚠️ | ❌ | ❌ | ❌ |
-| Update member role     | ✅ | ❌ | ❌ | ❌ |
-| Delete member          | ✅ | ⚠️ | ❌ | ❌ |
-| List projects          | ✅ | ✅ | ✅ | ❌ |
-| Create project         | ✅ | ✅ | ❌ | ❌ |
-| Update project         | ✅ | ⚠️ | ❌ | ❌ |
-| Delete project         | ✅ | ⚠️ | ❌ | ❌ |
-| Get billing details    | ✅ | ❌ | ✅ | ❌ |
-| Export billing details | ✅ | ❌ | ✅ | ❌ |
+|                    | Owner | Manager | Waiter | Cashier | Kitchen | Billing | Anonymous |
+|--------------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Update organization | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Delete organization | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Invite/revoke staff  | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| List/update members | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Manage orders        | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Manage tables        | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Manage menu          | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Manage shift/register | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| View billing         | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
+| Manage billing       | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 
 > ⚠️ = allowed with conditions
 >
-> - Only **owners** may transfer organization ownership
-> - Only **administrators** and **project authors** may update or delete a project
-> - **Members** may leave their own organization
+> - Only the organization's **owner** (`ownerId`) may transfer ownership or update the organization, even as OWNER
+> - `Order`/`Table`/`Menu`/`Shift` are permission subjects defined ahead of their features — no routes/models exist for them yet
+> - `Organization`/`Invite`/`Project` are leftovers from the original SaaS template's multi-tenancy layer; see `docs/PERMISSIONS.md` for the full breakdown
 
 ## Commands
 

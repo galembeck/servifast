@@ -61,11 +61,12 @@ export async function getOrganizationsRoute(app: FastifyInstance) {
 					},
 				});
 
-				const organizationsWithUserRole = organizations.map(
-					({ members, ...org }) => ({
-						...org,
-						role: members[0].role,
-					})
+				const organizationsWithUserRole = organizations.flatMap(
+					({ members, ...org }) => {
+						const membership = members[0];
+
+						return membership ? [{ ...org, role: membership.role }] : [];
+					}
 				);
 
 				return {

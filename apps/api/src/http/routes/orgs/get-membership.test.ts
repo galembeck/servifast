@@ -35,7 +35,7 @@ describe("GET /organizations/:slug/membership", () => {
 
 	it("returns the user membership details", async () => {
 		const userId = faker.string.uuid();
-		const { organization, membership } = mockMembership(userId, "ADMIN");
+		const { organization, membership } = mockMembership(userId, "OWNER");
 
 		const token = signToken(app, userId);
 
@@ -49,7 +49,7 @@ describe("GET /organizations/:slug/membership", () => {
 		expect(JSON.parse(response.body)).toMatchObject({
 			membership: {
 				id: membership.id,
-				role: "ADMIN",
+				role: "OWNER",
 				organizationId: organization.id,
 			},
 		});

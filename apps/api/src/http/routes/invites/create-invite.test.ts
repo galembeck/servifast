@@ -11,10 +11,10 @@ import {
 import { buildApp } from "@/test/helpers/build-app";
 import { mockMembership } from "@/test/helpers/membership";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -33,9 +33,9 @@ describe("POST /organizations/:slug/invites", () => {
 		resetPrismaMocks();
 	});
 
-	it("creates an invite when user is ADMIN", async () => {
+	it("creates an invite when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization, membership } = mockMembership(userId, "ADMIN");
+		const { organization, membership } = mockMembership(userId, "OWNER");
 		const inviteId = faker.string.uuid();
 		const email = faker.internet.email();
 
@@ -53,23 +53,49 @@ describe("POST /organizations/:slug/invites", () => {
 			method: "POST",
 			url: `/organizations/${organization.slug}/invites`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { email, role: "MEMBER" },
+			body: { email, role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(201);
 		expect(JSON.parse(response.body)).toMatchObject({ inviteId });
 	});
 
-	it("returns 401 UNAUTHORIZED when user is MEMBER", async () => {
+	it("creates an invite when user is MANAGER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization, membership } = mockMembership(userId, "MANAGER");
+		const inviteId = faker.string.uuid();
+		const email = faker.internet.email();
+
+		prismaMock.member.findFirst
+			.mockResolvedValueOnce({ ...membership, organization })
+			.mockResolvedValueOnce(null);
+
+		prismaMock.invite.findUnique.mockResolvedValue(null);
+		prismaMock.invite.create.mockResolvedValue({ id: inviteId });
+
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "POST",
 			url: `/organizations/${organization.slug}/invites`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { email: faker.internet.email(), role: "MEMBER" },
+			body: { email, role: "WAITER" },
+		});
+
+		expect(response.statusCode).toBe(201);
+		expect(JSON.parse(response.body)).toMatchObject({ inviteId });
+	});
+
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
+		const userId = faker.string.uuid();
+		const { organization } = mockMembership(userId, "WAITER");
+		const token = signToken(app, userId);
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/organizations/${organization.slug}/invites`,
+			headers: { Authorization: `Bearer ${token}` },
+			body: { email: faker.internet.email(), role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(401);
@@ -87,7 +113,7 @@ describe("POST /organizations/:slug/invites", () => {
 			method: "POST",
 			url: `/organizations/${organization.slug}/invites`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { email: faker.internet.email(), role: "MEMBER" },
+			body: { email: faker.internet.email(), role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(401);
@@ -98,7 +124,7 @@ describe("POST /organizations/:slug/invites", () => {
 
 	it("returns 400 AUTOMATICALLY_ATTACHING_USERS when org auto-attaches by domain", async () => {
 		const userId = faker.string.uuid();
-		const { organization, membership } = mockMembership(userId, "ADMIN");
+		const { organization, membership } = mockMembership(userId, "OWNER");
 		const domain = "example.com";
 
 		prismaMock.member.findFirst.mockResolvedValue({
@@ -116,7 +142,7 @@ describe("POST /organizations/:slug/invites", () => {
 			method: "POST",
 			url: `/organizations/${organization.slug}/invites`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { email: `user@${domain}`, role: "MEMBER" },
+			body: { email: `user@${domain}`, role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(400);
@@ -127,7 +153,7 @@ describe("POST /organizations/:slug/invites", () => {
 
 	it("returns 400 INVITE_ALREADY_EXISTS when an invite for that email already exists", async () => {
 		const userId = faker.string.uuid();
-		const { organization, membership } = mockMembership(userId, "ADMIN");
+		const { organization, membership } = mockMembership(userId, "OWNER");
 		const email = faker.internet.email();
 
 		prismaMock.member.findFirst.mockResolvedValueOnce({
@@ -146,7 +172,7 @@ describe("POST /organizations/:slug/invites", () => {
 			method: "POST",
 			url: `/organizations/${organization.slug}/invites`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { email, role: "MEMBER" },
+			body: { email, role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(400);
@@ -157,7 +183,7 @@ describe("POST /organizations/:slug/invites", () => {
 
 	it("returns 400 MEMBER_ALREADY_EXISTS when a member with that email already exists", async () => {
 		const userId = faker.string.uuid();
-		const { organization, membership } = mockMembership(userId, "ADMIN");
+		const { organization, membership } = mockMembership(userId, "OWNER");
 		const email = faker.internet.email();
 
 		prismaMock.member.findFirst
@@ -175,7 +201,7 @@ describe("POST /organizations/:slug/invites", () => {
 			method: "POST",
 			url: `/organizations/${organization.slug}/invites`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { email, role: "MEMBER" },
+			body: { email, role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(400);
@@ -188,7 +214,7 @@ describe("POST /organizations/:slug/invites", () => {
 		const response = await app.inject({
 			method: "POST",
 			url: "/organizations/some-org/invites",
-			body: { email: faker.internet.email(), role: "MEMBER" },
+			body: { email: faker.internet.email(), role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(401);

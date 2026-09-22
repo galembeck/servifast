@@ -33,9 +33,9 @@ describe("PUT /organizations/:slug", () => {
 		resetPrismaMocks();
 	});
 
-	it("updates the organization when user is ADMIN and owner", async () => {
+	it("updates the organization when user is OWNER and owner", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.organization.findFirst.mockResolvedValue(null);
 		prismaMock.organization.update.mockResolvedValue({ id: organization.id });
@@ -52,9 +52,9 @@ describe("PUT /organizations/:slug", () => {
 		expect(response.statusCode).toBe(204);
 	});
 
-	it("returns 401 UNAUTHORIZED when user is MEMBER", async () => {
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 
@@ -71,14 +71,14 @@ describe("PUT /organizations/:slug", () => {
 		});
 	});
 
-	it("returns 401 UNAUTHORIZED when ADMIN does not own the organization", async () => {
+	it("returns 401 UNAUTHORIZED when OWNER does not own the organization", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		// Override the ownerId to someone else
 		prismaMock.member.findFirst.mockResolvedValue({
 			id: faker.string.uuid(),
-			role: "ADMIN",
+			role: "OWNER",
 			organizationId: organization.id,
 			userId,
 			organization: { ...organization, ownerId: faker.string.uuid() },
@@ -101,13 +101,13 @@ describe("PUT /organizations/:slug", () => {
 
 	it("returns 400 DOMAIN_ALREADY_IN_USE when domain conflicts", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		// Override organization to have a domain set
 		const orgWithDomain = { ...organization, domain: "taken.com" };
 		prismaMock.member.findFirst.mockResolvedValue({
 			id: faker.string.uuid(),
-			role: "ADMIN",
+			role: "OWNER",
 			organizationId: organization.id,
 			userId,
 			organization: orgWithDomain,

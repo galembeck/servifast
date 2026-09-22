@@ -44,8 +44,11 @@ model Token {
 }
 
 enum Role {
-  ADMIN
-  MEMBER
+  OWNER
+  MANAGER
+  WAITER
+  CASHIER
+  KITCHEN
   BILLING
 }
 
@@ -69,7 +72,7 @@ model Invite {
 
 model Member {
   id   String @id @default(uuid())
-  role Role   @default(MEMBER)
+  role Role   @default(WAITER)
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   organizationId String       @map("organization_id")

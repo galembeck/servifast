@@ -41,14 +41,14 @@ describe("GET /organizations", () => {
 				name: "Org One",
 				slug: "org-one",
 				avatarUrl: null,
-				members: [{ role: "ADMIN" }],
+				members: [{ role: "OWNER" }],
 			},
 			{
 				id: faker.string.uuid(),
 				name: "Org Two",
 				slug: "org-two",
 				avatarUrl: null,
-				members: [{ role: "MEMBER" }],
+				members: [{ role: "WAITER" }],
 			},
 		]);
 
@@ -65,11 +65,11 @@ describe("GET /organizations", () => {
 		expect(body.organizations).toHaveLength(2);
 		expect(body.organizations[0]).toMatchObject({
 			slug: "org-one",
-			role: "ADMIN",
+			role: "OWNER",
 		});
 		expect(body.organizations[1]).toMatchObject({
 			slug: "org-two",
-			role: "MEMBER",
+			role: "WAITER",
 		});
 	});
 

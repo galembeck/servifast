@@ -1,6 +1,6 @@
 import "fastify";
 
-import type { Member, Organization } from "@prisma/client";
+import type { Member, Organization } from "@/generated/prisma/client.js";
 
 declare module "fastify" {
 	export interface FastifyRequest {

@@ -11,10 +11,10 @@ import {
 import { buildApp } from "@/test/helpers/build-app";
 import { mockMembership } from "@/test/helpers/membership";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -33,16 +33,16 @@ describe("PUT /organizations/:slug/members/:memberId", () => {
 		resetPrismaMocks();
 	});
 
-	it("updates the member role when user is ADMIN", async () => {
+	it("updates the member role when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 		const memberId = faker.string.uuid();
 
 		prismaMock.member.findUnique.mockResolvedValue({
 			id: memberId,
 			organizationId: organization.id,
 			userId: faker.string.uuid(),
-			role: "MEMBER",
+			role: "WAITER",
 		});
 		prismaMock.member.update.mockResolvedValue({ id: memberId });
 
@@ -58,9 +58,34 @@ describe("PUT /organizations/:slug/members/:memberId", () => {
 		expect(response.statusCode).toBe(204);
 	});
 
-	it("returns 401 UNAUTHORIZED when user is MEMBER", async () => {
+	it("updates the member role when user is MANAGER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "MANAGER");
+		const memberId = faker.string.uuid();
+
+		prismaMock.member.findUnique.mockResolvedValue({
+			id: memberId,
+			organizationId: organization.id,
+			userId: faker.string.uuid(),
+			role: "WAITER",
+		});
+		prismaMock.member.update.mockResolvedValue({ id: memberId });
+
+		const token = signToken(app, userId);
+
+		const response = await app.inject({
+			method: "PUT",
+			url: `/organizations/${organization.slug}/members/${memberId}`,
+			headers: { Authorization: `Bearer ${token}` },
+			body: { role: "CASHIER" },
+		});
+
+		expect(response.statusCode).toBe(204);
+	});
+
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
+		const userId = faker.string.uuid();
+		const { organization } = mockMembership(userId, "WAITER");
 		const memberId = faker.string.uuid();
 
 		prismaMock.member.findUnique.mockResolvedValue({
@@ -76,7 +101,7 @@ describe("PUT /organizations/:slug/members/:memberId", () => {
 			method: "PUT",
 			url: `/organizations/${organization.slug}/members/${memberId}`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { role: "MEMBER" },
+			body: { role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(401);
@@ -94,7 +119,7 @@ describe("PUT /organizations/:slug/members/:memberId", () => {
 			id: memberId,
 			organizationId: organization.id,
 			userId: faker.string.uuid(),
-			role: "MEMBER",
+			role: "WAITER",
 		});
 
 		const token = signToken(app, userId);
@@ -114,7 +139,7 @@ describe("PUT /organizations/:slug/members/:memberId", () => {
 
 	it("returns 400 NOT_FOUND when member does not exist in the organization", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 
 		prismaMock.member.findUnique.mockResolvedValue(null);
 
@@ -124,7 +149,7 @@ describe("PUT /organizations/:slug/members/:memberId", () => {
 			method: "PUT",
 			url: `/organizations/${organization.slug}/members/${faker.string.uuid()}`,
 			headers: { Authorization: `Bearer ${token}` },
-			body: { role: "MEMBER" },
+			body: { role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(400);
@@ -135,7 +160,7 @@ describe("PUT /organizations/:slug/members/:memberId", () => {
 		const response = await app.inject({
 			method: "PUT",
 			url: `/organizations/some-org/members/${faker.string.uuid()}`,
-			body: { role: "MEMBER" },
+			body: { role: "WAITER" },
 		});
 
 		expect(response.statusCode).toBe(401);

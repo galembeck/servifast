@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { DM_Sans, Inter, Poppins } from "next/font/google";
+import { Inter, Poppins } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 

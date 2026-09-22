@@ -11,10 +11,10 @@ import {
 import { buildApp } from "@/test/helpers/build-app";
 import { mockMembership } from "@/test/helpers/membership";
 import { signToken } from "@/test/helpers/sign-token";
-import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma";
+import { prismaMock, resetPrismaMocks } from "../../../test/mocks/prisma.js";
 
 vi.mock("@/lib/prisma", async () => {
-	const { prismaMock } = await import("../../../test/mocks/prisma");
+	const { prismaMock } = await import("../../../test/mocks/prisma.js");
 	return { prisma: prismaMock };
 });
 
@@ -22,7 +22,7 @@ function makeMember(_organizationId: string) {
 	const userId = faker.string.uuid();
 	return {
 		id: faker.string.uuid(),
-		role: "MEMBER" as const,
+		role: "WAITER" as const,
 		user: {
 			id: userId,
 			name: faker.person.fullName(),
@@ -47,9 +47,9 @@ describe("GET /organizations/:slug/members", () => {
 		resetPrismaMocks();
 	});
 
-	it("returns members list for ADMIN", async () => {
+	it("returns members list for OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "ADMIN");
+		const { organization } = mockMembership(userId, "OWNER");
 		const members = [makeMember(organization.id), makeMember(organization.id)];
 
 		prismaMock.member.findMany.mockResolvedValue(members);
@@ -71,9 +71,9 @@ describe("GET /organizations/:slug/members", () => {
 		});
 	});
 
-	it("returns members list for MEMBER", async () => {
+	it("returns members list for MANAGER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MEMBER");
+		const { organization } = mockMembership(userId, "MANAGER");
 		const members = [makeMember(organization.id)];
 
 		prismaMock.member.findMany.mockResolvedValue(members);
@@ -89,9 +89,9 @@ describe("GET /organizations/:slug/members", () => {
 		expect(response.statusCode).toBe(200);
 	});
 
-	it("returns 401 UNAUTHORIZED when user is BILLING", async () => {
+	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "BILLING");
+		const { organization } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 

@@ -9,7 +9,7 @@ type PermissionsByRole = (
 ) => void;
 
 export const permissions: Record<Role, PermissionsByRole> = {
-	ADMIN(user, { can, cannot }) {
+	OWNER(user, { can, cannot }) {
 		can("manage", "all");
 
 		cannot(["transfer_ownership", "update"], "Organization");
@@ -18,12 +18,38 @@ export const permissions: Record<Role, PermissionsByRole> = {
 		});
 	},
 
-	MEMBER(user, { can }) {
-		can("get", "User");
-		can(["create", "get"], "Project");
-		can(["update", "delete"], "Project", { ownerId: { $eq: user.id } });
+	MANAGER(_, { can }) {
+		can("manage", "Order");
+		can("manage", "Table");
+		can("manage", "Menu");
+		can("manage", "Shift");
+
+		can(["create", "get", "delete"], "Invite");
+
+		can(["get", "update"], "User");
+
+		can("get", "Billing");
 	},
+
+	WAITER(_, { can }) {
+		can(["create", "get", "update"], "Order");
+		can(["get", "update"], "Table");
+		can("get", "Menu");
+	},
+
+	CASHIER(_, { can }) {
+		can(["get", "update"], "Order");
+		can("manage", "Shift");
+		can("get", "Billing");
+	},
+
+	KITCHEN(_, { can }) {
+		can(["get", "update"], "Order");
+		can("get", "Menu");
+	},
+
 	BILLING(_, { can }) {
 		can("manage", "Billing");
+		can("get", "Order");
 	},
 };

@@ -53,15 +53,21 @@ export function CreateInviteForm() {
 					)}
 				</div>
 
-				<Select defaultValue="MEMBER" name="role">
+				<Select defaultValue="WAITER" name="role">
 					<SelectTrigger className="w-32">
 						<SelectValue>Select</SelectValue>
 					</SelectTrigger>
 
 					<SelectContent>
-						<SelectItem value="ADMIN">Admin</SelectItem>
+						<SelectItem value="OWNER">Owner</SelectItem>
 
-						<SelectItem value="MEMBER">Member</SelectItem>
+						<SelectItem value="MANAGER">Manager</SelectItem>
+
+						<SelectItem value="WAITER">Waiter</SelectItem>
+
+						<SelectItem value="CASHIER">Cashier</SelectItem>
+
+						<SelectItem value="KITCHEN">Kitchen</SelectItem>
 
 						<SelectItem value="BILLING">Billing</SelectItem>
 					</SelectContent>
