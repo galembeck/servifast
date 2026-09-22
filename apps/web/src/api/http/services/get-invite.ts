@@ -7,14 +7,16 @@ interface GetInviteResponse {
 		role: Role;
 		email: string;
 		createdAt: string;
-		organization: {
+		restaurant: {
 			name: string;
+			slug: string;
 		};
 		author: {
 			id: string;
 			name: string | null;
 			avatarUrl: string | null;
 		} | null;
+		emailHasAccount: boolean;
 	};
 }
 

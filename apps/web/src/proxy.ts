@@ -5,14 +5,14 @@ export function proxy(request: NextRequest) {
 
 	const response = NextResponse.next();
 
-	if (pathname.startsWith("/org")) {
+	if (pathname.startsWith("/restaurant")) {
 		const [, , slug] = pathname.split("/");
 
 		if (slug) {
-			response.cookies.set("org", slug);
+			response.cookies.set("restaurant", slug);
 		}
 	} else if (!request.headers.get("Next-Router-Prefetch")) {
-		response.cookies.delete("org");
+		response.cookies.delete("restaurant");
 	}
 
 	return response;

@@ -7,7 +7,7 @@ interface GetPendingInvitesResponse {
 		role: Role;
 		email: string;
 		createdAt: string;
-		organization: {
+		restaurant: {
 			name: string;
 		};
 		author: {

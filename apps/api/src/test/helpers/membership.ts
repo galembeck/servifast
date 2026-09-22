@@ -3,11 +3,11 @@ import type { Role } from "@repo/rbac/src/types/role";
 import { prismaMock } from "../mocks/prisma";
 
 export function mockMembership(userId: string, role: Role = "OWNER") {
-	const orgId = faker.string.uuid();
-	const organization = {
-		id: orgId,
-		name: "Test Organization",
-		slug: "test-organization",
+	const restaurantId = faker.string.uuid();
+	const restaurant = {
+		id: restaurantId,
+		name: "Test Restaurant",
+		slug: "test-restaurant",
 		domain: null,
 		shouldAttachUsersByDomain: false,
 		avatarUrl: null,
@@ -19,14 +19,14 @@ export function mockMembership(userId: string, role: Role = "OWNER") {
 	const membership = {
 		id: faker.string.uuid(),
 		role,
-		organizationId: orgId,
+		restaurantId,
 		userId,
 	};
 
 	prismaMock.member.findFirst.mockResolvedValue({
 		...membership,
-		organization,
+		restaurant,
 	});
 
-	return { organization, membership };
+	return { restaurant, membership };
 }

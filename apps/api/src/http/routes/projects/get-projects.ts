@@ -14,12 +14,12 @@ export async function getProjectsRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.get(
-			"/organizations/:slug/projects",
+			"/restaurants/:slug/projects",
 			{
 				schema: {
 					tags: ["Projects"],
-					summary: "/organizations/:slug/projects",
-					description: "Get all projects in an organization",
+					summary: "/restaurants/:slug/projects",
+					description: "Get all projects in an restaurant",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -33,7 +33,7 @@ export async function getProjectsRoute(app: FastifyInstance) {
 									name: z.string(),
 									slug: z.string(),
 									avatarUrl: z.url().nullable(),
-									organizationId: z.uuid(),
+									restaurantId: z.uuid(),
 									ownerId: z.uuid(),
 									createdAt: z.date(),
 									owner: z.object({
@@ -51,16 +51,16 @@ export async function getProjectsRoute(app: FastifyInstance) {
 				const { slug } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
 
 				if (cannot("get", "Project")) {
 					throw new UnauthorizedError(
-						"You are not authorized to see the projects in this organization.",
+						"You are not authorized to see the projects in this restaurant.",
 						AuthException.UNAUTHORIZED,
-						"User must have enough permission(s) in order to see the projects in this organization."
+						"User must have enough permission(s) in order to see the projects in this restaurant."
 					);
 				}
 
@@ -72,7 +72,7 @@ export async function getProjectsRoute(app: FastifyInstance) {
 						slug: true,
 						ownerId: true,
 						avatarUrl: true,
-						organizationId: true,
+						restaurantId: true,
 						createdAt: true,
 						owner: {
 							select: {
@@ -83,7 +83,7 @@ export async function getProjectsRoute(app: FastifyInstance) {
 						},
 					},
 					where: {
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 					orderBy: {
 						createdAt: "desc",

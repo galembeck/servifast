@@ -70,7 +70,7 @@ export async function acceptInviteRoute(app: FastifyInstance) {
 					prisma.member.create({
 						data: {
 							userId,
-							organizationId: invite.organizationId,
+							restaurantId: invite.restaurantId,
 							role: invite.role,
 						},
 					}),

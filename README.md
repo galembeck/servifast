@@ -76,23 +76,23 @@ The web app will be available at `http://localhost:3000`.
 - Sign in with email and password
 - Password recovery via email
 
-### Organizations
-- Create and manage organizations
+### Restaurants
+- Create and manage restaurants
 - Transfer ownership
-- Shut down an organization
+- Shut down a restaurant
 
 ### Invites
 - Invite members by email with a specific role
 - Accept or revoke pending invites
 
 ### Members
-- List organization members
+- List restaurant members
 - Update member roles
 - Remove members
 
 ### Projects
-- Create, update, and delete projects per organization
-- List all projects within an organization
+- Create, update, and delete projects per restaurant
+- List all projects within a restaurant
 
 ### Billing
 - View billing details: $20/project + $10/member (excluding billing role)
@@ -103,8 +103,8 @@ Roles: **Owner**, **Manager**, **Waiter**, **Cashier**, **Kitchen**, **Billing**
 
 |                    | Owner | Manager | Waiter | Cashier | Kitchen | Billing | Anonymous |
 |--------------------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Update organization | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Delete organization | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Update restaurant | ⚠️ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Delete restaurant | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Invite/revoke staff  | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | List/update members | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Manage orders        | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
@@ -116,9 +116,9 @@ Roles: **Owner**, **Manager**, **Waiter**, **Cashier**, **Kitchen**, **Billing**
 
 > ⚠️ = allowed with conditions
 >
-> - Only the organization's **owner** (`ownerId`) may transfer ownership or update the organization, even as OWNER
+> - Only the restaurant's **owner** (`ownerId`) may transfer ownership or update the restaurant, even as OWNER
 > - `Order`/`Table`/`Menu`/`Shift` are permission subjects defined ahead of their features — no routes/models exist for them yet
-> - `Organization`/`Invite`/`Project` are leftovers from the original SaaS template's multi-tenancy layer; see `docs/PERMISSIONS.md` for the full breakdown
+> - `Project` is a leftover from the original SaaS template's multi-tenancy layer, not part of the restaurant domain — only OWNER can touch it via `manage all`; see `docs/PERMISSIONS.md` for the full breakdown
 
 ## Commands
 

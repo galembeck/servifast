@@ -17,12 +17,12 @@ export async function updateMemberRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.put(
-			"/organizations/:slug/members/:memberId",
+			"/restaurants/:slug/members/:memberId",
 			{
 				schema: {
 					tags: ["Members"],
-					summary: "/organizations/:slug/members/:memberId",
-					description: "Update a member inside an organization",
+					summary: "/restaurants/:slug/members/:memberId",
+					description: "Update a member inside an restaurant",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -37,21 +37,21 @@ export async function updateMemberRoute(app: FastifyInstance) {
 				const { slug, memberId } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const member = await prisma.member.findUnique({
 					where: {
 						id: memberId,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 				});
 
 				if (!member) {
 					throw new BadRequestError(
-						"Member not found in this organization.",
+						"Member not found in this restaurant.",
 						BusinessException.NOT_FOUND,
-						"A valid and existing member ID is required to update a member in an organization."
+						"A valid and existing member ID is required to update a member in an restaurant."
 					);
 				}
 
@@ -70,7 +70,7 @@ export async function updateMemberRoute(app: FastifyInstance) {
 				await prisma.member.update({
 					where: {
 						id: memberId,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 					data: {
 						role,

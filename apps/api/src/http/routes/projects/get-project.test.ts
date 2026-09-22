@@ -18,14 +18,14 @@ vi.mock("@/lib/prisma", async () => {
 	return { prisma: prismaMock };
 });
 
-function makeProject(organizationId: string, ownerId: string) {
+function makeProject(restaurantId: string, ownerId: string) {
 	return {
 		id: faker.string.uuid(),
 		name: "Test Project",
 		description: "A test project",
 		slug: "test-project",
 		avatarUrl: null,
-		organizationId,
+		restaurantId,
 		ownerId,
 		owner: {
 			id: ownerId,
@@ -35,7 +35,7 @@ function makeProject(organizationId: string, ownerId: string) {
 	};
 }
 
-describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
+describe("GET /restaurants/:orgSlug/projects/:projectSlug", () => {
 	let app: Awaited<ReturnType<typeof buildApp>>;
 
 	beforeAll(async () => {
@@ -52,8 +52,8 @@ describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
 
 	it("returns the project for an OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
-		const project = makeProject(organization.id, faker.string.uuid());
+		const { restaurant } = mockMembership(userId, "OWNER");
+		const project = makeProject(restaurant.id, faker.string.uuid());
 
 		prismaMock.project.findUnique.mockResolvedValue(project);
 
@@ -61,7 +61,7 @@ describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
 
 		const response = await app.inject({
 			method: "GET",
-			url: `/organizations/${organization.slug}/projects/${project.slug}`,
+			url: `/restaurants/${restaurant.slug}/projects/${project.slug}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -71,20 +71,20 @@ describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
 				id: project.id,
 				name: project.name,
 				slug: project.slug,
-				organizationId: organization.id,
+				restaurantId: restaurant.id,
 			},
 		});
 	});
 
 	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "GET",
-			url: `/organizations/${organization.slug}/projects/any-project`,
+			url: `/restaurants/${restaurant.slug}/projects/any-project`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -96,13 +96,13 @@ describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
 
 	it("returns 401 UNAUTHORIZED when user is BILLING", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "BILLING");
+		const { restaurant } = mockMembership(userId, "BILLING");
 
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "GET",
-			url: `/organizations/${organization.slug}/projects/any-project`,
+			url: `/restaurants/${restaurant.slug}/projects/any-project`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -112,9 +112,9 @@ describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
 		});
 	});
 
-	it("returns 400 NOT_FOUND when project does not exist in the organization", async () => {
+	it("returns 400 NOT_FOUND when project does not exist in the restaurant", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 
 		prismaMock.project.findUnique.mockResolvedValue(null);
 
@@ -122,7 +122,7 @@ describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
 
 		const response = await app.inject({
 			method: "GET",
-			url: `/organizations/${organization.slug}/projects/nonexistent-project`,
+			url: `/restaurants/${restaurant.slug}/projects/nonexistent-project`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -135,7 +135,7 @@ describe("GET /organizations/:orgSlug/projects/:projectSlug", () => {
 	it("returns 401 INVALID_TOKEN when not authenticated", async () => {
 		const response = await app.inject({
 			method: "GET",
-			url: "/organizations/some-org/projects/some-project",
+			url: "/restaurants/some-org/projects/some-project",
 		});
 
 		expect(response.statusCode).toBe(401);

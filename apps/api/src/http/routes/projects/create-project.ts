@@ -15,12 +15,12 @@ export async function createProjectRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.post(
-			"/organizations/:slug/projects",
+			"/restaurants/:slug/projects",
 			{
 				schema: {
 					tags: ["Projects"],
-					summary: "/organizations/:slug/projects",
-					description: "Create a new project inside an organization",
+					summary: "/restaurants/:slug/projects",
+					description: "Create a new project inside an restaurant",
 					security: [{ bearerAuth: [] }],
 					body: z.object({
 						name: z.string(),
@@ -40,16 +40,16 @@ export async function createProjectRoute(app: FastifyInstance) {
 				const { slug } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
 
 				if (cannot("create", "Project")) {
 					throw new UnauthorizedError(
-						"You are not authorized to create a project in this organization.",
+						"You are not authorized to create a project in this restaurant.",
 						AuthException.UNAUTHORIZED,
-						"User must have enough permission(s) in order to create a project in this organization."
+						"User must have enough permission(s) in order to create a project in this restaurant."
 					);
 				}
 
@@ -60,7 +60,7 @@ export async function createProjectRoute(app: FastifyInstance) {
 						name,
 						slug: createSlug(name),
 						description,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 						ownerId: userId,
 					},
 				});

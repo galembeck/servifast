@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**ServiFast** is a restaurant control-panel system (waiters, kitchen, CEOs, etc.), built by adapting a generic multi-tenant SaaS + RBAC template. The RBAC layer (`packages/rbac`) and the organization/project domain model still reflect the original template and have not yet been reworked for the restaurant domain — expect that to change as feature work progresses. Authentication is e-mail/CPF (Brazilian document) + password only; there is no GitHub/OAuth login and no public self-registration in the restaurant app (staff accounts are provisioned, not self-signed-up).
+**ServiFast** is a restaurant control-panel system (waiters, kitchen, CEOs, etc.), built by adapting a generic multi-tenant SaaS + RBAC template. The original template's `Organization` model has been renamed to `Restaurant` throughout the stack (DB, API routes, RBAC subject, frontend), and `packages/rbac`'s permissions now reflect restaurant-specific roles (OWNER/MANAGER/WAITER/CASHIER/KITCHEN/BILLING). `Project`/`Invite` still reflect the original template and haven't been reworked for the restaurant domain yet — expect that to change as feature work progresses. Authentication is e-mail/CPF (Brazilian document) + password only; there is no GitHub/OAuth login and no public self-registration in the restaurant app (staff accounts are provisioned, not self-signed-up).
+
+Frontend UI copy is Portuguese (matching the target users); backend and code-level identifiers (models, routes, variables, RBAC subjects) stay English.
 
 ## Monorepo Structure
 

@@ -6,7 +6,9 @@ export default function Home() {
 			<Header />
 
 			<main className="mx-auto w-full max-w-300">
-				<p className="text-muted-foreground text-sm">Select an organization</p>
+				<p className="text-muted-foreground text-sm">
+					Selecione um restaurante
+				</p>
 			</main>
 		</div>
 	);

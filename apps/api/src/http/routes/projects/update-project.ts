@@ -17,12 +17,12 @@ export async function updateProjectRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.put(
-			"/organizations/:slug/projects/:projectId",
+			"/restaurants/:slug/projects/:projectId",
 			{
 				schema: {
 					tags: ["Projects"],
-					summary: "/organizations/:slug/projects/:projectId",
-					description: "Update a project inside an organization",
+					summary: "/restaurants/:slug/projects/:projectId",
+					description: "Update a project inside an restaurant",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -38,21 +38,21 @@ export async function updateProjectRoute(app: FastifyInstance) {
 				const { slug, projectId } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const project = await prisma.project.findUnique({
 					where: {
 						id: projectId,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 				});
 
 				if (!project) {
 					throw new BadRequestError(
-						"Project not found in this organization.",
+						"Project not found in this restaurant.",
 						BusinessException.NOT_FOUND,
-						"A valid and existing project ID is required to delete a project in an organization."
+						"A valid and existing project ID is required to delete a project in an restaurant."
 					);
 				}
 

@@ -15,11 +15,11 @@ interface GetInvitesResponse {
 	}[];
 }
 
-export async function getInvites(orgSlug: string) {
+export async function getInvites(restaurantSlug: string) {
 	const result = await api
-		.get(`organizations/${orgSlug}/invites`, {
+		.get(`restaurants/${restaurantSlug}/invites`, {
 			next: {
-				tags: [`${orgSlug}/invites`],
+				tags: [`${restaurantSlug}/invites`],
 			},
 		})
 		.json<GetInvitesResponse>();

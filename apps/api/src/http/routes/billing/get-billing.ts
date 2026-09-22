@@ -14,13 +14,13 @@ export async function getBillingRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.get(
-			"/organizations/:slug/billing",
+			"/restaurants/:slug/billing",
 			{
 				schema: {
-					tags: ["Organization"],
-					summary: "/organizations/:slug/billing",
+					tags: ["Restaurant"],
+					summary: "/restaurants/:slug/billing",
 					description:
-						"Get billing details/information from an organization by its slug.",
+						"Get billing details/information from an restaurant by its slug.",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -49,7 +49,7 @@ export async function getBillingRoute(app: FastifyInstance) {
 
 				const userId = await request.getCurrentUserId();
 
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
@@ -58,21 +58,21 @@ export async function getBillingRoute(app: FastifyInstance) {
 					throw new UnauthorizedError(
 						null,
 						AuthException.UNAUTHORIZED,
-						"You do not have enough permission to get billing details from this organization."
+						"You do not have enough permission to get billing details from this restaurant."
 					);
 				}
 
 				const [amountOfMembers, amountOfProjects] = await Promise.all([
 					prisma.member.count({
 						where: {
-							organizationId: organization.id,
+							restaurantId: restaurant.id,
 							role: { not: "BILLING" },
 						},
 					}),
 
 					prisma.project.count({
 						where: {
-							organizationId: organization.id,
+							restaurantId: restaurant.id,
 						},
 					}),
 				]);

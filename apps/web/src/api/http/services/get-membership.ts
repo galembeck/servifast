@@ -6,13 +6,13 @@ interface GetMembershipResponse {
 		id: string;
 		role: Role;
 		userId: string;
-		organizationId: string;
+		restaurantId: string;
 	};
 }
 
 export async function getMembership(slug: string) {
 	const result = await api
-		.get(`organizations/${slug}/membership`)
+		.get(`restaurants/${slug}/membership`)
 		.json<GetMembershipResponse>();
 
 	return result;

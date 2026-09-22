@@ -7,7 +7,7 @@ interface GetProjectsResponse {
 		name: string;
 		slug: string;
 		avatarUrl: string | null;
-		organizationId: string;
+		restaurantId: string;
 		ownerId: string;
 		createdAt: string;
 		owner: {
@@ -18,11 +18,11 @@ interface GetProjectsResponse {
 	}[];
 }
 
-export async function getProjects(orgSlug: string) {
+export async function getProjects(restaurantSlug: string) {
 	const result = await api
-		.get(`organizations/${orgSlug}/projects`, {
+		.get(`restaurants/${restaurantSlug}/projects`, {
 			next: {
-				tags: [`${orgSlug}/projects`],
+				tags: [`${restaurantSlug}/projects`],
 			},
 		})
 		.json<GetProjectsResponse>();

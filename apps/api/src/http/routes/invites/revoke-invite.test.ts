@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", async () => {
 	return { prisma: prismaMock };
 });
 
-describe("DELETE /organizations/:slug/invites/:inviteId", () => {
+describe("DELETE /restaurants/:slug/invites/:inviteId", () => {
 	let app: Awaited<ReturnType<typeof buildApp>>;
 
 	beforeAll(async () => {
@@ -35,7 +35,7 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 
 	it("returns 204 when OWNER revokes an invite successfully", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 		const token = signToken(app, userId);
 		const inviteId = faker.string.uuid();
 
@@ -43,7 +43,7 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 			id: inviteId,
 			email: faker.internet.email(),
 			role: "WAITER" as const,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),
 		});
@@ -51,7 +51,7 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/invites/${inviteId}`,
+			url: `/restaurants/${restaurant.slug}/invites/${inviteId}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -60,7 +60,7 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 
 	it("returns 204 when MANAGER revokes an invite successfully", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MANAGER");
+		const { restaurant } = mockMembership(userId, "MANAGER");
 		const token = signToken(app, userId);
 		const inviteId = faker.string.uuid();
 
@@ -68,7 +68,7 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 			id: inviteId,
 			email: faker.internet.email(),
 			role: "WAITER" as const,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),
 		});
@@ -76,7 +76,7 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/invites/${inviteId}`,
+			url: `/restaurants/${restaurant.slug}/invites/${inviteId}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -85,12 +85,12 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 
 	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/invites/${faker.string.uuid()}`,
+			url: `/restaurants/${restaurant.slug}/invites/${faker.string.uuid()}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -102,12 +102,12 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 
 	it("returns 401 UNAUTHORIZED when user is BILLING", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "BILLING");
+		const { restaurant } = mockMembership(userId, "BILLING");
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/invites/${faker.string.uuid()}`,
+			url: `/restaurants/${restaurant.slug}/invites/${faker.string.uuid()}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -119,14 +119,14 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 
 	it("returns 400 NOT_FOUND when invite does not exist", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 		const token = signToken(app, userId);
 
 		prismaMock.invite.findUnique.mockResolvedValue(null);
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/invites/${faker.string.uuid()}`,
+			url: `/restaurants/${restaurant.slug}/invites/${faker.string.uuid()}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -139,7 +139,7 @@ describe("DELETE /organizations/:slug/invites/:inviteId", () => {
 	it("returns 401 INVALID_TOKEN when not authenticated", async () => {
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/some-org/invites/${faker.string.uuid()}`,
+			url: `/restaurants/some-org/invites/${faker.string.uuid()}`,
 		});
 
 		expect(response.statusCode).toBe(401);

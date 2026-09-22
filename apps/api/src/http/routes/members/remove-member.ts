@@ -16,12 +16,12 @@ export async function removeMemberRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.delete(
-			"/organizations/:slug/members/:memberId",
+			"/restaurants/:slug/members/:memberId",
 			{
 				schema: {
 					tags: ["Members"],
-					summary: "/organizations/:slug/members/:memberId",
-					description: "Remove a member from an organization",
+					summary: "/restaurants/:slug/members/:memberId",
+					description: "Remove a member from an restaurant",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -33,21 +33,21 @@ export async function removeMemberRoute(app: FastifyInstance) {
 				const { slug, memberId } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const member = await prisma.member.findUnique({
 					where: {
 						id: memberId,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 				});
 
 				if (!member) {
 					throw new BadRequestError(
-						"Member not found in this organization.",
+						"Member not found in this restaurant.",
 						BusinessException.NOT_FOUND,
-						"A valid and existing member ID is required to remove a member in an organization."
+						"A valid and existing member ID is required to remove a member in an restaurant."
 					);
 				}
 
@@ -64,7 +64,7 @@ export async function removeMemberRoute(app: FastifyInstance) {
 				await prisma.member.delete({
 					where: {
 						id: memberId,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 				});
 

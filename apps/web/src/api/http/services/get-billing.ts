@@ -16,9 +16,9 @@ interface GetBillingResponse {
 	};
 }
 
-export async function getBilling(org: string) {
+export async function getBilling(restaurant: string) {
 	const result = await api
-		.get(`organizations/${org}/billing`)
+		.get(`restaurants/${restaurant}/billing`)
 		.json<GetBillingResponse>();
 
 	return result;

@@ -35,7 +35,7 @@ export async function createAccountRoute(app: FastifyInstance) {
 
 			const [, domain] = email.split("@");
 
-			const autoJoinOrganization = await prisma.organization.findFirst({
+			const autoJoinRestaurant = await prisma.restaurant.findFirst({
 				where: {
 					domain,
 					shouldAttachUsersByDomain: true,
@@ -49,10 +49,10 @@ export async function createAccountRoute(app: FastifyInstance) {
 					name,
 					email,
 					passwordHash,
-					member_on: autoJoinOrganization
+					member_on: autoJoinRestaurant
 						? {
 								create: {
-									organizationId: autoJoinOrganization.id,
+									restaurantId: autoJoinRestaurant.id,
 								},
 							}
 						: undefined,

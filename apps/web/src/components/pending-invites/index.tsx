@@ -41,18 +41,18 @@ export function PendingInvites() {
 				<Button className="border border-border" size="icon" variant="ghost">
 					<UserPlus2 className="h-[1.2rem] w-[1.2rem]" />
 
-					<span className="sr-only">Pending invites</span>
+					<span className="sr-only">Convites pendentes</span>
 				</Button>
 			</PopoverTrigger>
 
 			<PopoverContent className="w-80 space-y-2">
 				<span className="block font-medium text-sm">
-					Pending invites ({data?.invites?.length ?? 0})
+					Convites pendentes ({data?.invites?.length ?? 0})
 				</span>
 
 				{data?.invites.length === 0 && (
 					<p className="text-center text-muted-foreground text-sm">
-						No invites found :/
+						Não há convites pendentes :/
 					</p>
 				)}
 
@@ -62,9 +62,9 @@ export function PendingInvites() {
 							<span className="font-medium text-foreground">
 								{invite.author?.name ?? "Someone"}
 							</span>{" "}
-							invited you to join{" "}
+							convidou você para entrar em{" "}
 							<span className="font-medium text-foreground">
-								{invite.organization.name}
+								{invite.restaurant.name}
 							</span>{" "}
 							{dayjs(invite.createdAt).fromNow()}
 						</p>
@@ -72,7 +72,7 @@ export function PendingInvites() {
 						<div className="flex gap-1">
 							<Button onClick={() => handleAcceptInvite(invite.id)} size="icon">
 								<Check className="size-3" />
-								<span className="sr-only">Accept</span>
+								<span className="sr-only">Aceitar</span>
 							</Button>
 
 							<Button
@@ -81,7 +81,7 @@ export function PendingInvites() {
 								variant="outline"
 							>
 								<X className="size-3" />
-								<span className="sr-only">Reject</span>
+								<span className="sr-only">Recusar</span>
 							</Button>
 						</div>
 					</div>

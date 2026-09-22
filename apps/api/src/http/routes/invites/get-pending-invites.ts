@@ -28,7 +28,7 @@ export async function getPendingInvitesRoute(app: FastifyInstance) {
 									role: roleSchema,
 									email: z.email(),
 									createdAt: z.date(),
-									organization: z.object({
+									restaurant: z.object({
 										name: z.string(),
 									}),
 									author: z
@@ -74,7 +74,7 @@ export async function getPendingInvitesRoute(app: FastifyInstance) {
 								avatarUrl: true,
 							},
 						},
-						organization: {
+						restaurant: {
 							select: {
 								name: true,
 							},

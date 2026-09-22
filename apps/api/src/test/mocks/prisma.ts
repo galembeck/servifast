@@ -9,7 +9,7 @@ export const prismaMock = {
 		update: vi.fn(),
 		delete: vi.fn(),
 	},
-	organization: {
+	restaurant: {
 		findUnique: vi.fn(),
 		findFirst: vi.fn(),
 		findMany: vi.fn(),

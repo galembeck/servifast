@@ -7,8 +7,9 @@ import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { AuthException } from "@/http/_errors/exceptions/auth";
 import { InviteException } from "@/http/_errors/exceptions/invite";
-import { OrganizationException } from "@/http/_errors/exceptions/organization";
+import { RestaurantException } from "@/http/_errors/exceptions/restaurant";
 import { auth } from "@/http/middlewares/auth";
+import { sendInviteEmail } from "@/lib/mail/send-invite-email";
 import { prisma } from "@/lib/prisma";
 import { BadRequestError } from "../_errors/bad-request-error";
 import { UnauthorizedError } from "../_errors/unauthorized-error";
@@ -18,12 +19,12 @@ export async function createInviteRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.post(
-			"/organizations/:slug/invites",
+			"/restaurants/:slug/invites",
 			{
 				schema: {
 					tags: ["Invites"],
-					summary: "/organizations/:slug/invites",
-					description: "Create a new invite for an organization",
+					summary: "/restaurants/:slug/invites",
+					description: "Create a new invite for an restaurant",
 					security: [{ bearerAuth: [] }],
 					body: z.object({
 						email: z.email(),
@@ -43,16 +44,16 @@ export async function createInviteRoute(app: FastifyInstance) {
 				const { slug } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
 
 				if (cannot("create", "Invite")) {
 					throw new UnauthorizedError(
-						"You are not authorized to create an invite for this organization.",
+						"You are not authorized to create an invite for this restaurant.",
 						AuthException.UNAUTHORIZED,
-						"User must have enough permission(s) in order to create an invite for this organization."
+						"User must have enough permission(s) in order to create an invite for this restaurant."
 					);
 				}
 
@@ -61,21 +62,21 @@ export async function createInviteRoute(app: FastifyInstance) {
 				const [_, domain] = email.split("@");
 
 				if (
-					organization.shouldAttachUsersByDomain &&
-					organization.domain === domain
+					restaurant.shouldAttachUsersByDomain &&
+					restaurant.domain === domain
 				) {
 					throw new BadRequestError(
-						"Automatically attaching users to your organization.",
-						OrganizationException.AUTOMATICALLY_ATTACHING_USERS,
-						`Users with "${domain}" domain will join your organization automatically on login.`
+						"Automatically attaching users to your restaurant.",
+						RestaurantException.AUTOMATICALLY_ATTACHING_USERS,
+						`Users with "${domain}" domain will join your restaurant automatically on login.`
 					);
 				}
 
 				const inviteWithSameEmail = await prisma.invite.findUnique({
 					where: {
-						email_organizationId: {
+						email_restaurantId: {
 							email,
-							organizationId: organization.id,
+							restaurantId: restaurant.id,
 						},
 					},
 				});
@@ -84,13 +85,13 @@ export async function createInviteRoute(app: FastifyInstance) {
 					throw new BadRequestError(
 						"Invite already exists for this email.",
 						InviteException.INVITE_ALREADY_EXISTS,
-						"Another invite with the same e-mail already exists for this organization."
+						"Another invite with the same e-mail already exists for this restaurant."
 					);
 				}
 
 				const memberWithSameEmail = await prisma.member.findFirst({
 					where: {
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 						user: {
 							email,
 						},
@@ -99,20 +100,40 @@ export async function createInviteRoute(app: FastifyInstance) {
 
 				if (memberWithSameEmail) {
 					throw new BadRequestError(
-						"Member already exists in this organization.",
-						OrganizationException.MEMBER_ALREADY_EXISTS,
-						"There is already a member with this e-mail registered in this organization."
+						"Member already exists in this restaurant.",
+						RestaurantException.MEMBER_ALREADY_EXISTS,
+						"There is already a member with this e-mail registered in this restaurant."
 					);
 				}
 
 				const invite = await prisma.invite.create({
 					data: {
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 						email,
 						role,
 						authorId: userId,
 					},
+					include: {
+						author: {
+							select: { name: true },
+						},
+					},
 				});
+
+				try {
+					await sendInviteEmail({
+						to: email,
+						inviterName: invite.author?.name ?? "Alguém",
+						restaurantName: restaurant.name,
+						role,
+						inviteId: invite.id,
+					});
+				} catch (error) {
+					request.log.warn(
+						{ error, inviteId: invite.id },
+						"Failed to send invite e-mail"
+					);
+				}
 
 				return reply.status(201).send({
 					inviteId: invite.id,

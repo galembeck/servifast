@@ -2,12 +2,12 @@ import { api } from "../api-client";
 
 interface RemoveMemberRequest {
 	memberId: string;
-	organization: string;
+	restaurant: string;
 }
 
 export async function removeMember({
-	organization,
+	restaurant,
 	memberId,
 }: RemoveMemberRequest) {
-	await api.delete(`organizations/${organization}/member/${memberId}`);
+	await api.delete(`restaurants/${restaurant}/members/${memberId}`);
 }

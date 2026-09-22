@@ -15,12 +15,12 @@ export async function getMembersRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.get(
-			"/organizations/:slug/members",
+			"/restaurants/:slug/members",
 			{
 				schema: {
 					tags: ["Members"],
-					summary: "/organizations/:slug/members",
-					description: "Get all members in an organization",
+					summary: "/restaurants/:slug/members",
+					description: "Get all members in an restaurant",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -45,16 +45,16 @@ export async function getMembersRoute(app: FastifyInstance) {
 				const { slug } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
 
 				if (cannot("get", "User")) {
 					throw new UnauthorizedError(
-						"You are not authorized to see the members in this organization.",
+						"You are not authorized to see the members in this restaurant.",
 						AuthException.UNAUTHORIZED,
-						"User must have enough permission(s) in order to see the members in this organization."
+						"User must have enough permission(s) in order to see the members in this restaurant."
 					);
 				}
 
@@ -72,7 +72,7 @@ export async function getMembersRoute(app: FastifyInstance) {
 						},
 					},
 					where: {
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 					orderBy: {
 						role: "asc",

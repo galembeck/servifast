@@ -26,8 +26,9 @@ export async function getInviteRoute(app: FastifyInstance) {
 							role: roleSchema,
 							email: z.email(),
 							createdAt: z.date(),
-							organization: z.object({
+							restaurant: z.object({
 								name: z.string(),
+								slug: z.string(),
 							}),
 							author: z
 								.object({
@@ -36,6 +37,7 @@ export async function getInviteRoute(app: FastifyInstance) {
 									avatarUrl: z.url().nullable(),
 								})
 								.nullable(),
+							emailHasAccount: z.boolean(),
 						}),
 					}),
 				},
@@ -60,9 +62,10 @@ export async function getInviteRoute(app: FastifyInstance) {
 							avatarUrl: true,
 						},
 					},
-					organization: {
+					restaurant: {
 						select: {
 							name: true,
+							slug: true,
 						},
 					},
 				},
@@ -76,7 +79,14 @@ export async function getInviteRoute(app: FastifyInstance) {
 				);
 			}
 
-			return reply.status(200).send({ invite });
+			const userWithSameEmail = await prisma.user.findUnique({
+				where: { email: invite.email },
+				select: { id: true },
+			});
+
+			return reply.status(200).send({
+				invite: { ...invite, emailHasAccount: userWithSameEmail !== null },
+			});
 		}
 	);
 }

@@ -1,13 +1,13 @@
 import { api } from "../api-client";
 
 interface DeleteProjectRequest {
-	organization: string;
 	projectId: string;
+	restaurant: string;
 }
 
 export async function DeleteProject({
-	organization,
+	restaurant,
 	projectId,
 }: DeleteProjectRequest) {
-	await api.delete(`organizations/${organization}/projects/${projectId}`);
+	await api.delete(`restaurants/${restaurant}/projects/${projectId}`);
 }

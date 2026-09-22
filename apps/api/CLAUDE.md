@@ -173,12 +173,12 @@ Protected routes require both a valid JWT and a mocked membership. Use `mockMemb
 
 ```typescript
 const userId = faker.string.uuid();
-const { organization, membership } = mockMembership(userId, "OWNER"); // role: OWNER | MANAGER | WAITER | CASHIER | KITCHEN | BILLING
+const { restaurant, membership } = mockMembership(userId, "OWNER"); // role: OWNER | MANAGER | WAITER | CASHIER | KITCHEN | BILLING
 const token = signToken(app, userId);
 
 const response = await app.inject({
   method: "GET",
-  url: `/organizations/${organization.slug}/something`,
+  url: `/restaurants/${restaurant.slug}/something`,
   headers: { Authorization: `Bearer ${token}` },
 });
 ```
@@ -186,21 +186,21 @@ const response = await app.inject({
 To simulate a non-owner OWNER (for RBAC update/transfer_ownership tests), override `member.findFirst` after calling `mockMembership`:
 
 ```typescript
-const { organization } = mockMembership(userId, "OWNER");
+const { restaurant } = mockMembership(userId, "OWNER");
 prismaMock.member.findFirst.mockResolvedValue({
   id: faker.string.uuid(),
   role: "OWNER",
-  organizationId: organization.id,
+  restaurantId: restaurant.id,
   userId,
-  organization: { ...organization, ownerId: faker.string.uuid() }, // different owner
+  restaurant: { ...restaurant, ownerId: faker.string.uuid() }, // different owner
 });
 ```
 
 ### RBAC permission matrix
 
-See `docs/PERMISSIONS.md` at the repo root for the full role/permission breakdown (roles: `OWNER`, `MANAGER`, `WAITER`, `CASHIER`, `KITCHEN`, `BILLING`). Quick reference for the routes that exist today (Organization/Invite/User/Billing/Project — the last two are SaaS-template leftovers, not restaurant domain):
+See `docs/PERMISSIONS.md` at the repo root for the full role/permission breakdown (roles: `OWNER`, `MANAGER`, `WAITER`, `CASHIER`, `KITCHEN`, `BILLING`). Quick reference for the routes that exist today (Restaurant/Invite/User/Billing/Project — Project is a SaaS-template leftover, not restaurant domain):
 
-| Role | Organization | Invite | User (members) | Billing | Project |
+| Role | Restaurant | Invite | User (members) | Billing | Project |
 |------|-------------|--------|-----------------|---------|---------|
 | OWNER | manage all; update/transfer_ownership only if `ownerId === userId` | manage all | manage all | manage all | manage all |
 | MANAGER | — | create, get, delete | get, update | get | — |

@@ -11,8 +11,8 @@ import { billingSubject } from "./subjects/billing.subject";
 import { inviteSubject } from "./subjects/invite.subject";
 import { menuSubject } from "./subjects/menu.subject";
 import { orderSubject } from "./subjects/order.subject";
-import { organizationSubject } from "./subjects/organization.subject";
 import { projectSubject } from "./subjects/project.subject";
+import { restaurantSubject } from "./subjects/restaurant.subject";
 import { shiftSubject } from "./subjects/shift.subject";
 import { tableSubject } from "./subjects/table.subject";
 import { userSubject } from "./subjects/user.subject";
@@ -22,7 +22,7 @@ const appAbilitiesSchema = z.union([
 	inviteSubject,
 	menuSubject,
 	orderSubject,
-	organizationSubject,
+	restaurantSubject,
 	projectSubject,
 	shiftSubject,
 	tableSubject,

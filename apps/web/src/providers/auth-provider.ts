@@ -8,18 +8,18 @@ export async function isAuthenticated() {
 	return !!(await cookies()).get("accessToken")?.value;
 }
 
-export async function getCurrentOrganization() {
-	return (await cookies()).get("org")?.value ?? null;
+export async function getCurrentRestaurant() {
+	return (await cookies()).get("restaurant")?.value ?? null;
 }
 
 export async function getCurrentMembership() {
-	const organization = await getCurrentOrganization();
+	const restaurant = await getCurrentRestaurant();
 
-	if (!organization) {
+	if (!restaurant) {
 		return null;
 	}
 
-	const { membership } = await getMembership(organization);
+	const { membership } = await getMembership(restaurant);
 
 	return membership;
 }

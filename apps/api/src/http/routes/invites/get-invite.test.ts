@@ -31,7 +31,7 @@ describe("GET /invites/:inviteId", () => {
 		resetPrismaMocks();
 	});
 
-	it("returns invite details when invite exists", async () => {
+	it("returns invite details when invite exists and email has no account", async () => {
 		const inviteId = faker.string.uuid();
 		const invite = {
 			id: inviteId,
@@ -43,12 +43,14 @@ describe("GET /invites/:inviteId", () => {
 				name: faker.person.fullName(),
 				avatarUrl: faker.internet.url(),
 			},
-			organization: {
+			restaurant: {
 				name: faker.company.name(),
+				slug: faker.lorem.slug(),
 			},
 		};
 
 		prismaMock.invite.findUnique.mockResolvedValue(invite);
+		prismaMock.user.findUnique.mockResolvedValue(null);
 
 		const response = await app.inject({
 			method: "GET",
@@ -61,13 +63,45 @@ describe("GET /invites/:inviteId", () => {
 				id: inviteId,
 				email: invite.email,
 				role: invite.role,
-				organization: { name: invite.organization.name },
+				restaurant: {
+					name: invite.restaurant.name,
+					slug: invite.restaurant.slug,
+				},
 				author: {
 					id: invite.author.id,
 					name: invite.author.name,
 					avatarUrl: invite.author.avatarUrl,
 				},
+				emailHasAccount: false,
 			},
+		});
+	});
+
+	it("returns emailHasAccount true when a user already exists with the invite's e-mail", async () => {
+		const inviteId = faker.string.uuid();
+		const invite = {
+			id: inviteId,
+			email: faker.internet.email(),
+			role: "WAITER" as const,
+			createdAt: new Date(),
+			author: null,
+			restaurant: {
+				name: faker.company.name(),
+				slug: faker.lorem.slug(),
+			},
+		};
+
+		prismaMock.invite.findUnique.mockResolvedValue(invite);
+		prismaMock.user.findUnique.mockResolvedValue({ id: faker.string.uuid() });
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/invites/${inviteId}`,
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(JSON.parse(response.body)).toMatchObject({
+			invite: { emailHasAccount: true },
 		});
 	});
 
@@ -79,12 +113,14 @@ describe("GET /invites/:inviteId", () => {
 			role: "OWNER" as const,
 			createdAt: new Date(),
 			author: null,
-			organization: {
+			restaurant: {
 				name: faker.company.name(),
+				slug: faker.lorem.slug(),
 			},
 		};
 
 		prismaMock.invite.findUnique.mockResolvedValue(invite);
+		prismaMock.user.findUnique.mockResolvedValue(null);
 
 		const response = await app.inject({
 			method: "GET",

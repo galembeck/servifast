@@ -16,12 +16,12 @@ export async function revokeInviteRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.delete(
-			"/organizations/:slug/invites/:inviteId",
+			"/restaurants/:slug/invites/:inviteId",
 			{
 				schema: {
 					tags: ["Invites"],
-					summary: "/organizations/:slug/invites/:inviteId",
-					description: "Revoke an invite for an organization by its ID",
+					summary: "/restaurants/:slug/invites/:inviteId",
+					description: "Revoke an invite for an restaurant by its ID",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -33,23 +33,23 @@ export async function revokeInviteRoute(app: FastifyInstance) {
 				const { slug, inviteId } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
 
 				if (cannot("delete", "Invite")) {
 					throw new UnauthorizedError(
-						"You are not authorized to revoke an invite for this organization.",
+						"You are not authorized to revoke an invite for this restaurant.",
 						AuthException.UNAUTHORIZED,
-						"User must have enough permission(s) in order to revoke an invite for this organization."
+						"User must have enough permission(s) in order to revoke an invite for this restaurant."
 					);
 				}
 
 				const invite = await prisma.invite.findUnique({
 					where: {
 						id: inviteId,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 				});
 

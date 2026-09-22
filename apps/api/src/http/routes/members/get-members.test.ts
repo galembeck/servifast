@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", async () => {
 	return { prisma: prismaMock };
 });
 
-function makeMember(_organizationId: string) {
+function makeMember(_restaurantId: string) {
 	const userId = faker.string.uuid();
 	return {
 		id: faker.string.uuid(),
@@ -32,7 +32,7 @@ function makeMember(_organizationId: string) {
 	};
 }
 
-describe("GET /organizations/:slug/members", () => {
+describe("GET /restaurants/:slug/members", () => {
 	let app: Awaited<ReturnType<typeof buildApp>>;
 
 	beforeAll(async () => {
@@ -49,8 +49,8 @@ describe("GET /organizations/:slug/members", () => {
 
 	it("returns members list for OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
-		const members = [makeMember(organization.id), makeMember(organization.id)];
+		const { restaurant } = mockMembership(userId, "OWNER");
+		const members = [makeMember(restaurant.id), makeMember(restaurant.id)];
 
 		prismaMock.member.findMany.mockResolvedValue(members);
 
@@ -58,7 +58,7 @@ describe("GET /organizations/:slug/members", () => {
 
 		const response = await app.inject({
 			method: "GET",
-			url: `/organizations/${organization.slug}/members`,
+			url: `/restaurants/${restaurant.slug}/members`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -73,8 +73,8 @@ describe("GET /organizations/:slug/members", () => {
 
 	it("returns members list for MANAGER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "MANAGER");
-		const members = [makeMember(organization.id)];
+		const { restaurant } = mockMembership(userId, "MANAGER");
+		const members = [makeMember(restaurant.id)];
 
 		prismaMock.member.findMany.mockResolvedValue(members);
 
@@ -82,7 +82,7 @@ describe("GET /organizations/:slug/members", () => {
 
 		const response = await app.inject({
 			method: "GET",
-			url: `/organizations/${organization.slug}/members`,
+			url: `/restaurants/${restaurant.slug}/members`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -91,13 +91,13 @@ describe("GET /organizations/:slug/members", () => {
 
 	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "GET",
-			url: `/organizations/${organization.slug}/members`,
+			url: `/restaurants/${restaurant.slug}/members`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -110,7 +110,7 @@ describe("GET /organizations/:slug/members", () => {
 	it("returns 401 INVALID_TOKEN when not authenticated", async () => {
 		const response = await app.inject({
 			method: "GET",
-			url: "/organizations/some-org/members",
+			url: "/restaurants/some-org/members",
 		});
 
 		expect(response.statusCode).toBe(401);

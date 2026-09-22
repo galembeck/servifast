@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", async () => {
 	return { prisma: prismaMock };
 });
 
-describe("POST /organizations/:slug/projects", () => {
+describe("POST /restaurants/:slug/projects", () => {
 	let app: Awaited<ReturnType<typeof buildApp>>;
 
 	beforeAll(async () => {
@@ -35,7 +35,7 @@ describe("POST /organizations/:slug/projects", () => {
 
 	it("creates a project when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.create.mockResolvedValue({ id: projectId });
@@ -44,7 +44,7 @@ describe("POST /organizations/:slug/projects", () => {
 
 		const response = await app.inject({
 			method: "POST",
-			url: `/organizations/${organization.slug}/projects`,
+			url: `/restaurants/${restaurant.slug}/projects`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "New Project", description: "A test project" },
 		});
@@ -55,13 +55,13 @@ describe("POST /organizations/:slug/projects", () => {
 
 	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "POST",
-			url: `/organizations/${organization.slug}/projects`,
+			url: `/restaurants/${restaurant.slug}/projects`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "New Project", description: "A test project" },
 		});
@@ -74,13 +74,13 @@ describe("POST /organizations/:slug/projects", () => {
 
 	it("returns 401 UNAUTHORIZED when user is BILLING", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "BILLING");
+		const { restaurant } = mockMembership(userId, "BILLING");
 
 		const token = signToken(app, userId);
 
 		const response = await app.inject({
 			method: "POST",
-			url: `/organizations/${organization.slug}/projects`,
+			url: `/restaurants/${restaurant.slug}/projects`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "New Project", description: "A test project" },
 		});
@@ -94,7 +94,7 @@ describe("POST /organizations/:slug/projects", () => {
 	it("returns 401 INVALID_TOKEN when not authenticated", async () => {
 		const response = await app.inject({
 			method: "POST",
-			url: "/organizations/some-org/projects",
+			url: "/restaurants/some-org/projects",
 			body: { name: "New Project", description: "A test project" },
 		});
 

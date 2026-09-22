@@ -33,7 +33,7 @@ describe("POST /users", () => {
 
 	it("creates account and returns 201", async () => {
 		prismaMock.user.findUnique.mockResolvedValue(null);
-		prismaMock.organization.findFirst.mockResolvedValue(null);
+		prismaMock.restaurant.findFirst.mockResolvedValue(null);
 		prismaMock.user.create.mockResolvedValue({ id: faker.string.uuid() });
 
 		const response = await app.inject({
@@ -49,9 +49,9 @@ describe("POST /users", () => {
 		expect(response.statusCode).toBe(201);
 	});
 
-	it("auto-joins organization when domain matches", async () => {
+	it("auto-joins restaurant when domain matches", async () => {
 		const domain = "acme.com";
-		const org = {
+		const restaurant = {
 			id: faker.string.uuid(),
 			name: "Acme",
 			slug: "acme",
@@ -60,7 +60,7 @@ describe("POST /users", () => {
 		};
 
 		prismaMock.user.findUnique.mockResolvedValue(null);
-		prismaMock.organization.findFirst.mockResolvedValue(org);
+		prismaMock.restaurant.findFirst.mockResolvedValue(restaurant);
 		prismaMock.user.create.mockResolvedValue({ id: faker.string.uuid() });
 
 		const response = await app.inject({

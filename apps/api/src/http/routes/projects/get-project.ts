@@ -16,15 +16,15 @@ export async function getProjectRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.get(
-			"/organizations/:orgSlug/projects/:projectSlug",
+			"/restaurants/:restaurantSlug/projects/:projectSlug",
 			{
 				schema: {
 					tags: ["Projects"],
-					summary: "/organizations/:orgSlug/projects/:projectSlug",
+					summary: "/restaurants/:restaurantSlug/projects/:projectSlug",
 					description: "Get a project by its slug",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
-						orgSlug: z.string(),
+						restaurantSlug: z.string(),
 						projectSlug: z.string(),
 					}),
 					response: {
@@ -35,7 +35,7 @@ export async function getProjectRoute(app: FastifyInstance) {
 								name: z.string(),
 								slug: z.string(),
 								avatarUrl: z.url().nullable(),
-								organizationId: z.uuid(),
+								restaurantId: z.uuid(),
 								ownerId: z.uuid(),
 								owner: z.object({
 									id: z.uuid(),
@@ -48,11 +48,11 @@ export async function getProjectRoute(app: FastifyInstance) {
 				},
 			},
 			async (request, reply) => {
-				const { orgSlug, projectSlug } = request.params;
+				const { restaurantSlug, projectSlug } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
-					await request.getUserMembership(orgSlug);
+				const { restaurant, membership } =
+					await request.getUserMembership(restaurantSlug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
 
@@ -72,7 +72,7 @@ export async function getProjectRoute(app: FastifyInstance) {
 						slug: true,
 						ownerId: true,
 						avatarUrl: true,
-						organizationId: true,
+						restaurantId: true,
 						owner: {
 							select: {
 								id: true,
@@ -83,15 +83,15 @@ export async function getProjectRoute(app: FastifyInstance) {
 					},
 					where: {
 						slug: projectSlug,
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 				});
 
 				if (!project) {
 					throw new BadRequestError(
-						"Project not found in this organization.",
+						"Project not found in this restaurant.",
 						BusinessException.NOT_FOUND,
-						"The target project could not be found in the organization."
+						"The target project could not be found in the restaurant."
 					);
 				}
 

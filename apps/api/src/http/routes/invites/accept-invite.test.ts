@@ -42,7 +42,7 @@ describe("POST /invites/:inviteId/accept", () => {
 			id: inviteId,
 			email,
 			role: "WAITER" as const,
-			organizationId: faker.string.uuid(),
+			restaurantId: faker.string.uuid(),
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),
 		};
@@ -94,7 +94,7 @@ describe("POST /invites/:inviteId/accept", () => {
 			id: faker.string.uuid(),
 			email: faker.internet.email(),
 			role: "WAITER" as const,
-			organizationId: faker.string.uuid(),
+			restaurantId: faker.string.uuid(),
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),
 		});
@@ -120,7 +120,7 @@ describe("POST /invites/:inviteId/accept", () => {
 			id: faker.string.uuid(),
 			email: "invite@example.com",
 			role: "WAITER" as const,
-			organizationId: faker.string.uuid(),
+			restaurantId: faker.string.uuid(),
 			authorId: faker.string.uuid(),
 			createdAt: new Date(),
 		});

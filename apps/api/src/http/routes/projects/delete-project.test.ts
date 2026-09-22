@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", async () => {
 	return { prisma: prismaMock };
 });
 
-describe("DELETE /organizations/:slug/projects/:projectId", () => {
+describe("DELETE /restaurants/:slug/projects/:projectId", () => {
 	let app: Awaited<ReturnType<typeof buildApp>>;
 
 	beforeAll(async () => {
@@ -35,12 +35,12 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 	it("deletes the project when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
 			id: projectId,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			ownerId: faker.string.uuid(),
 		});
 		prismaMock.project.delete.mockResolvedValue({ id: projectId });
@@ -49,7 +49,7 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/projects/${projectId}`,
+			url: `/restaurants/${restaurant.slug}/projects/${projectId}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -58,12 +58,12 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 	it("returns 401 UNAUTHORIZED when WAITER owns the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
 			id: projectId,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			ownerId: userId,
 		});
 
@@ -71,7 +71,7 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/projects/${projectId}`,
+			url: `/restaurants/${restaurant.slug}/projects/${projectId}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -83,12 +83,12 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 	it("returns 401 UNAUTHORIZED when WAITER does not own the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
 			id: projectId,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			ownerId: faker.string.uuid(),
 		});
 
@@ -96,7 +96,7 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/projects/${projectId}`,
+			url: `/restaurants/${restaurant.slug}/projects/${projectId}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 
@@ -106,9 +106,9 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 		});
 	});
 
-	it("returns 400 NOT_FOUND when project does not exist in the organization", async () => {
+	it("returns 400 NOT_FOUND when project does not exist in the restaurant", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 
 		prismaMock.project.findUnique.mockResolvedValue(null);
 
@@ -116,7 +116,7 @@ describe("DELETE /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "DELETE",
-			url: `/organizations/${organization.slug}/projects/${faker.string.uuid()}`,
+			url: `/restaurants/${restaurant.slug}/projects/${faker.string.uuid()}`,
 			headers: { Authorization: `Bearer ${token}` },
 		});
 

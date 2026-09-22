@@ -24,27 +24,27 @@ export const auth = fastifyPlugin(async (app: FastifyInstance) => {
 			const member = await prisma.member.findFirst({
 				where: {
 					userId,
-					organization: {
+					restaurant: {
 						slug,
 					},
 				},
 
 				include: {
-					organization: true,
+					restaurant: true,
 				},
 			});
 
 			if (!member) {
 				throw new UnauthorizedError(
-					"User is not a member of this organization.",
+					"User is not a member of this restaurant.",
 					AuthException.UNAUTHORIZED
 				);
 			}
 
-			const { organization, ...membership } = member;
+			const { restaurant, ...membership } = member;
 
 			return {
-				organization,
+				restaurant,
 				membership,
 			};
 		};

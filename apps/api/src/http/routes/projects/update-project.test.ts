@@ -18,7 +18,7 @@ vi.mock("@/lib/prisma", async () => {
 	return { prisma: prismaMock };
 });
 
-describe("PUT /organizations/:slug/projects/:projectId", () => {
+describe("PUT /restaurants/:slug/projects/:projectId", () => {
 	let app: Awaited<ReturnType<typeof buildApp>>;
 
 	beforeAll(async () => {
@@ -35,12 +35,12 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 	it("updates the project when user is OWNER", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
 			id: projectId,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			ownerId: faker.string.uuid(),
 		});
 		prismaMock.project.update.mockResolvedValue({ id: projectId });
@@ -49,7 +49,7 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "PUT",
-			url: `/organizations/${organization.slug}/projects/${projectId}`,
+			url: `/restaurants/${restaurant.slug}/projects/${projectId}`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "Updated Name", description: "Updated description" },
 		});
@@ -59,12 +59,12 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 	it("returns 401 UNAUTHORIZED when WAITER owns the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
 			id: projectId,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			ownerId: userId,
 		});
 
@@ -72,7 +72,7 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "PUT",
-			url: `/organizations/${organization.slug}/projects/${projectId}`,
+			url: `/restaurants/${restaurant.slug}/projects/${projectId}`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "Updated Name", description: "Updated description" },
 		});
@@ -85,12 +85,12 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 	it("returns 401 UNAUTHORIZED when WAITER does not own the project", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, "WAITER");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
 			id: projectId,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			ownerId: faker.string.uuid(),
 		});
 
@@ -98,7 +98,7 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "PUT",
-			url: `/organizations/${organization.slug}/projects/${projectId}`,
+			url: `/restaurants/${restaurant.slug}/projects/${projectId}`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "Updated Name", description: "Updated description" },
 		});
@@ -111,12 +111,12 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 	it("returns 401 UNAUTHORIZED when user is BILLING", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "BILLING");
+		const { restaurant } = mockMembership(userId, "BILLING");
 		const projectId = faker.string.uuid();
 
 		prismaMock.project.findUnique.mockResolvedValue({
 			id: projectId,
-			organizationId: organization.id,
+			restaurantId: restaurant.id,
 			ownerId: faker.string.uuid(),
 		});
 
@@ -124,7 +124,7 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "PUT",
-			url: `/organizations/${organization.slug}/projects/${projectId}`,
+			url: `/restaurants/${restaurant.slug}/projects/${projectId}`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "Updated Name", description: "Updated description" },
 		});
@@ -135,9 +135,9 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 		});
 	});
 
-	it("returns 400 NOT_FOUND when project does not exist in the organization", async () => {
+	it("returns 400 NOT_FOUND when project does not exist in the restaurant", async () => {
 		const userId = faker.string.uuid();
-		const { organization } = mockMembership(userId, "OWNER");
+		const { restaurant } = mockMembership(userId, "OWNER");
 
 		prismaMock.project.findUnique.mockResolvedValue(null);
 
@@ -145,7 +145,7 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 
 		const response = await app.inject({
 			method: "PUT",
-			url: `/organizations/${organization.slug}/projects/${faker.string.uuid()}`,
+			url: `/restaurants/${restaurant.slug}/projects/${faker.string.uuid()}`,
 			headers: { Authorization: `Bearer ${token}` },
 			body: { name: "Updated Name", description: "Updated description" },
 		});
@@ -159,7 +159,7 @@ describe("PUT /organizations/:slug/projects/:projectId", () => {
 	it("returns 401 INVALID_TOKEN when not authenticated", async () => {
 		const response = await app.inject({
 			method: "PUT",
-			url: `/organizations/some-org/projects/${faker.string.uuid()}`,
+			url: `/restaurants/some-org/projects/${faker.string.uuid()}`,
 			body: { name: "Updated Name", description: "Updated description" },
 		});
 

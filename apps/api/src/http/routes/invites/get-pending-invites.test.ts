@@ -53,7 +53,7 @@ describe("GET /invites/pending", () => {
 				email,
 				role: "WAITER" as const,
 				createdAt: new Date(),
-				organization: { name: faker.company.name() },
+				restaurant: { name: faker.company.name() },
 				author: {
 					id: faker.string.uuid(),
 					name: faker.person.fullName(),
@@ -65,7 +65,7 @@ describe("GET /invites/pending", () => {
 				email,
 				role: "OWNER" as const,
 				createdAt: new Date(),
-				organization: { name: faker.company.name() },
+				restaurant: { name: faker.company.name() },
 				author: null,
 			},
 		];

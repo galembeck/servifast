@@ -3,16 +3,16 @@ import { api } from "../api-client";
 
 interface CreateInviteRequest {
 	email: string;
-	organization: string;
+	restaurant: string;
 	role: Role;
 }
 
 export async function createInvite({
-	organization,
+	restaurant,
 	email,
 	role,
 }: CreateInviteRequest) {
-	await api.post(`organizations/${organization}/invites`, {
+	await api.post(`restaurants/${restaurant}/invites`, {
 		json: {
 			email,
 			role,

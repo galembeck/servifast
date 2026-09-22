@@ -10,13 +10,13 @@ This project contains all the necessary boilerplate to setup a multi-tenant SaaS
 - [x] It should be able to recover password using e-mail;
 - [x] It should be able to create an account (e-mail, name and password);
 
-### Organizations
+### Restaurants
 
-- [ ] It should be able to create a new organization;
-- [ ] It should be able to get organizations to which the user belongs;
-- [ ] It should be able to update an organization;
-- [ ] It should be able to shutdown an organization;
-- [ ] It should be able to transfer organization ownership;
+- [ ] It should be able to create a new restaurant;
+- [ ] It should be able to get restaurants to which the user belongs;
+- [ ] It should be able to update a restaurant;
+- [ ] It should be able to shutdown a restaurant;
+- [ ] It should be able to transfer restaurant ownership;
 
 ### Invites
 
@@ -26,19 +26,19 @@ This project contains all the necessary boilerplate to setup a multi-tenant SaaS
 
 ### Members
 
-- [ ] It should be able to get organization members;
+- [ ] It should be able to get restaurant members;
 - [ ] It should be able to update a member role;
 
 ### Projects
 
-- [ ] It should be able to get projects within a organization;
+- [ ] It should be able to get projects within a restaurant;
 - [ ] It should be able to create a new project (name, url, description);
 - [ ] It should be able to update a project (name, url, description);
 - [ ] It should be able to delete a project;
 
 ### Billing
 
-- [ ] It should be able to get billing details for organization ($20 per project / $10 per member excluding billing role);
+- [ ] It should be able to get billing details for restaurant ($20 per project / $10 per member excluding billing role);
 
 ## RBAC
 
@@ -60,8 +60,8 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 
 |                          | Owner | Manager | Waiter | Cashier | Kitchen | Billing | Anonymous |
 | ------------------------ | ----- | ------- | ------ | ------- | ------- | ------- | --------- |
-| Update organization      | ⚠️    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
-| Delete organization      | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Update restaurant      | ⚠️    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
+| Delete restaurant      | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | Transfer ownership       | ⚠️    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | Invite a member          | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | Revoke an invite         | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
@@ -82,8 +82,8 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 >
 > ¹ WAITER can create/view/update orders (not delete). ² CASHIER/KITCHEN can view/update orders but not create; WAITER can view/update tables but not delete.
 >
-> \* Projects/Organizations are leftovers from the original SaaS template's multi-tenancy layer, not part of the restaurant domain — only OWNER can touch them via `manage all`.
+> \* Projects are a leftover from the original SaaS template's multi-tenancy layer, not part of the restaurant domain — only OWNER can touch them via `manage all`.
 
 #### Conditions
 
-- Only the organization's owner (`ownerId === user.id`) may transfer ownership or update the organization, even as OWNER.
+- Only the restaurant's owner (`ownerId === user.id`) may transfer ownership or update the restaurant, even as OWNER.

@@ -11,7 +11,7 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function seed() {
-	await prisma.organization.deleteMany();
+	await prisma.restaurant.deleteMany();
 	await prisma.user.deleteMany();
 
 	const passwordHash = await hash("123456", 1);
@@ -44,7 +44,7 @@ async function seed() {
 		},
 	});
 
-	await prisma.organization.create({
+	await prisma.restaurant.create({
 		data: {
 			name: "Acme Inc (Admin)",
 			domain: "acme.com",
@@ -112,7 +112,7 @@ async function seed() {
 		},
 	});
 
-	await prisma.organization.create({
+	await prisma.restaurant.create({
 		data: {
 			name: "Acme Inc (Member)",
 			slug: "acme-member",
@@ -178,7 +178,7 @@ async function seed() {
 		},
 	});
 
-	await prisma.organization.create({
+	await prisma.restaurant.create({
 		data: {
 			name: "Acme Inc (Billing)",
 			slug: "acme-billing",

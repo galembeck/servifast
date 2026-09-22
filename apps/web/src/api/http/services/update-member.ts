@@ -3,16 +3,16 @@ import { api } from "../api-client";
 
 interface UpdateMemberRequest {
 	memberId: string;
-	organization: string;
+	restaurant: string;
 	role: Role;
 }
 
 export async function updateMember({
-	organization,
+	restaurant,
 	memberId,
 	role,
 }: UpdateMemberRequest) {
-	await api.delete(`organizations/${organization}/member/${memberId}`, {
+	await api.put(`restaurants/${restaurant}/members/${memberId}`, {
 		json: {
 			role,
 		},

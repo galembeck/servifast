@@ -15,12 +15,12 @@ export async function getInvitesRoute(app: FastifyInstance) {
 		.withTypeProvider<ZodTypeProvider>()
 		.register(auth)
 		.get(
-			"/organizations/:slug/invites",
+			"/restaurants/:slug/invites",
 			{
 				schema: {
 					tags: ["Invites"],
-					summary: "/organizations/:slug/invites",
-					description: "Get all invites for an organization",
+					summary: "/restaurants/:slug/invites",
+					description: "Get all invites for an restaurant",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -50,22 +50,22 @@ export async function getInvitesRoute(app: FastifyInstance) {
 				const { slug } = request.params;
 
 				const userId = await request.getCurrentUserId();
-				const { organization, membership } =
+				const { restaurant, membership } =
 					await request.getUserMembership(slug);
 
 				const { cannot } = getUserPermissions(userId, membership.role);
 
 				if (cannot("get", "Invite")) {
 					throw new UnauthorizedError(
-						"You are not authorized to list invites for this organization.",
+						"You are not authorized to list invites for this restaurant.",
 						AuthException.UNAUTHORIZED,
-						"User must have enough permission(s) in order to list invites for this organization."
+						"User must have enough permission(s) in order to list invites for this restaurant."
 					);
 				}
 
 				const invites = await prisma.invite.findMany({
 					where: {
-						organizationId: organization.id,
+						restaurantId: restaurant.id,
 					},
 					select: {
 						id: true,
