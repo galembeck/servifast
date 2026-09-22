@@ -1,0 +1,83 @@
+import { fastifyCors } from "@fastify/cors";
+import fastifyJwt from "@fastify/jwt";
+import { fastify } from "fastify";
+import {
+	serializerCompiler,
+	validatorCompiler,
+	type ZodTypeProvider,
+} from "fastify-type-provider-zod";
+import { errorHandler } from "@/http/error-handler";
+import { authenticateWithPasswordRoute } from "@/http/routes/auth/authenticate-with-password";
+import { requestPasswordRecoveryRoute } from "@/http/routes/auth/request-password-recovery";
+import { resetPasswordRoute } from "@/http/routes/auth/reset-password";
+import { getBillingRoute } from "@/http/routes/billing/get-billing";
+import { acceptInviteRoute } from "@/http/routes/invites/accept-invite";
+import { createInviteRoute } from "@/http/routes/invites/create-invite";
+import { getInviteRoute } from "@/http/routes/invites/get-invite";
+import { getInvitesRoute } from "@/http/routes/invites/get-invites";
+import { getPendingInvitesRoute } from "@/http/routes/invites/get-pending-invites";
+import { rejectInviteRoute } from "@/http/routes/invites/reject-invite";
+import { revokeInviteRoute } from "@/http/routes/invites/revoke-invite";
+import { getMembersRoute } from "@/http/routes/members/get-members";
+import { removeMemberRoute } from "@/http/routes/members/remove-member";
+import { updateMemberRoute } from "@/http/routes/members/update-member";
+import { createOrganizationRoute } from "@/http/routes/orgs/create-organization";
+import { deleteOrganizationRoute } from "@/http/routes/orgs/delete-organization";
+import { getMembershipRoute } from "@/http/routes/orgs/get-membership";
+import { getOrganizationRoute } from "@/http/routes/orgs/get-organization";
+import { getOrganizationsRoute } from "@/http/routes/orgs/get-organizations";
+import { transferOwnershipRoute } from "@/http/routes/orgs/transfer-ownership";
+import { updateOrganizationRoute } from "@/http/routes/orgs/update-organization";
+import { createProjectRoute } from "@/http/routes/projects/create-project";
+import { deleteProjectRoute } from "@/http/routes/projects/delete-project";
+import { getProjectRoute } from "@/http/routes/projects/get-project";
+import { getProjectsRoute } from "@/http/routes/projects/get-projects";
+import { updateProjectRoute } from "@/http/routes/projects/update-project";
+import { createAccountRoute } from "@/http/routes/user/create-account";
+import { getProfileRoute } from "@/http/routes/user/get-profile";
+
+export async function buildApp() {
+	const app = fastify().withTypeProvider<ZodTypeProvider>();
+
+	app.setValidatorCompiler(validatorCompiler);
+	app.setSerializerCompiler(serializerCompiler);
+	app.setErrorHandler(errorHandler);
+
+	await app.register(fastifyJwt, {
+		secret: process.env.JWT_SECRET ?? "test-secret",
+	});
+	await app.register(fastifyCors);
+
+	await app.register(createAccountRoute);
+	await app.register(authenticateWithPasswordRoute);
+	await app.register(requestPasswordRecoveryRoute);
+	await app.register(resetPasswordRoute);
+	await app.register(getProfileRoute);
+	await app.register(createOrganizationRoute);
+	await app.register(getMembershipRoute);
+	await app.register(getOrganizationRoute);
+	await app.register(getOrganizationsRoute);
+	await app.register(updateOrganizationRoute);
+	await app.register(deleteOrganizationRoute);
+	await app.register(transferOwnershipRoute);
+	await app.register(acceptInviteRoute);
+	await app.register(createInviteRoute);
+	await app.register(getInviteRoute);
+	await app.register(getInvitesRoute);
+	await app.register(getPendingInvitesRoute);
+	await app.register(rejectInviteRoute);
+	await app.register(revokeInviteRoute);
+	await app.register(getMembersRoute);
+	await app.register(updateMemberRoute);
+	await app.register(removeMemberRoute);
+	await app.register(createProjectRoute);
+	await app.register(deleteProjectRoute);
+	await app.register(getProjectRoute);
+	await app.register(getProjectsRoute);
+	await app.register(updateProjectRoute);
+	await app.register(getBillingRoute);
+
+	await app.ready();
+
+	return app;
+}

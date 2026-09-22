@@ -1,0 +1,23 @@
+{
+  "devDependencies": {
+    "@biomejs/biome": "2.4.15",
+    "husky": "^9.1.7",
+    "turbo": "^2.9.14",
+    "typescript": "5.9.2",
+    "ultracite": "7.7.0"
+  },
+  "name": "servifast",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "check-types": "turbo run check-types",
+    "check": "ultracite check",
+    "fix": "ultracite fix",
+    "prepare": "husky"
+  },
+  "private": true,
+  "packageManager": "pnpm@12.4.2",
+  "engines": {
+    "node": ">=18"
+  }
+}

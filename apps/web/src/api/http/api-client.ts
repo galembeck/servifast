@@ -1,0 +1,27 @@
+import { env } from "@repo/env";
+import { getCookie } from "cookies-next";
+import ky from "ky";
+
+export const api = ky.create({
+	baseUrl: env.NEXT_PUBLIC_API_URL,
+	hooks: {
+		beforeRequest: [
+			async ({ request }) => {
+				let token: string | undefined;
+
+				if (typeof window === "undefined") {
+					const { cookies: serverCookies } = await import("next/headers");
+					const cookieStore = await serverCookies();
+
+					token = cookieStore.get("accessToken")?.value;
+				} else {
+					token = getCookie("accessToken") as string | undefined;
+				}
+
+				if (token) {
+					request.headers.set("Authorization", `Bearer ${token}`);
+				}
+			},
+		],
+	},
+});
