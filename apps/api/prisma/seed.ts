@@ -52,45 +52,6 @@ async function seed() {
 			avatarUrl: faker.image.avatar(),
 			shouldAttachUsersByDomain: true,
 			ownerId: user.id,
-			projects: {
-				createMany: {
-					data: [
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-					],
-				},
-			},
 			members: {
 				createMany: {
 					data: [
@@ -118,45 +79,6 @@ async function seed() {
 			slug: "acme-member",
 			avatarUrl: faker.image.avatar(),
 			ownerId: user.id,
-			projects: {
-				createMany: {
-					data: [
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-					],
-				},
-			},
 			members: {
 				createMany: {
 					data: [
@@ -184,45 +106,6 @@ async function seed() {
 			slug: "acme-billing",
 			avatarUrl: faker.image.avatar(),
 			ownerId: user.id,
-			projects: {
-				createMany: {
-					data: [
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-						{
-							name: faker.lorem.words(5),
-							slug: faker.lorem.slug(5),
-							description: faker.lorem.paragraph(),
-							avatarUrl: faker.image.avatar(),
-							ownerId: faker.helpers.arrayElement([
-								user.id,
-								anotherUser.id,
-								anotherUser2.id,
-							]),
-						},
-					],
-				},
-			},
 			members: {
 				createMany: {
 					data: [

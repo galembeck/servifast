@@ -61,8 +61,8 @@ export default async function RestaurantSettingsPage() {
 							<CardTitle>Excluir restaurante</CardTitle>
 
 							<CardDescription>
-								Isso excluirá todos os dados do restaurante, incluindo todos os
-								projetos. Essa ação não pode ser desfeita.
+								Isso excluirá todos os dados do restaurante. Essa ação não pode
+								ser desfeita.
 							</CardDescription>
 						</CardHeader>
 

@@ -1,5 +1,6 @@
 import { fastifyCors } from "@fastify/cors";
 import fastifyJwt from "@fastify/jwt";
+import { fastifyMultipart } from "@fastify/multipart";
 import { fastify } from "fastify";
 import {
 	serializerCompiler,
@@ -22,11 +23,12 @@ import { revokeInviteRoute } from "@/http/routes/invites/revoke-invite";
 import { getMembersRoute } from "@/http/routes/members/get-members";
 import { removeMemberRoute } from "@/http/routes/members/remove-member";
 import { updateMemberRoute } from "@/http/routes/members/update-member";
-import { createProjectRoute } from "@/http/routes/projects/create-project";
-import { deleteProjectRoute } from "@/http/routes/projects/delete-project";
-import { getProjectRoute } from "@/http/routes/projects/get-project";
-import { getProjectsRoute } from "@/http/routes/projects/get-projects";
-import { updateProjectRoute } from "@/http/routes/projects/update-project";
+import { createMenuCategoryRoute } from "@/http/routes/menu/create-menu-category";
+import { createMenuItemRoute } from "@/http/routes/menu/create-menu-item";
+import { deleteMenuItemRoute } from "@/http/routes/menu/delete-menu-item";
+import { getMenuCategoriesRoute } from "@/http/routes/menu/get-menu-categories";
+import { getMenuItemsRoute } from "@/http/routes/menu/get-menu-items";
+import { updateMenuItemRoute } from "@/http/routes/menu/update-menu-item";
 import { createRestaurantRoute } from "@/http/routes/restaurants/create-restaurant";
 import { deleteRestaurantRoute } from "@/http/routes/restaurants/delete-restaurant";
 import { getMembershipRoute } from "@/http/routes/restaurants/get-membership";
@@ -34,6 +36,8 @@ import { getRestaurantRoute } from "@/http/routes/restaurants/get-restaurant";
 import { getRestaurantsRoute } from "@/http/routes/restaurants/get-restaurants";
 import { transferOwnershipRoute } from "@/http/routes/restaurants/transfer-ownership";
 import { updateRestaurantRoute } from "@/http/routes/restaurants/update-restaurant";
+import { createTableRoute } from "@/http/routes/tables/create-table";
+import { getTablesRoute } from "@/http/routes/tables/get-tables";
 import { createAccountRoute } from "@/http/routes/user/create-account";
 import { getProfileRoute } from "@/http/routes/user/get-profile";
 
@@ -48,6 +52,7 @@ export async function buildApp() {
 		secret: process.env.JWT_SECRET ?? "test-secret",
 	});
 	await app.register(fastifyCors);
+	await app.register(fastifyMultipart);
 
 	await app.register(createAccountRoute);
 	await app.register(authenticateWithPasswordRoute);
@@ -72,11 +77,14 @@ export async function buildApp() {
 	await app.register(getMembersRoute);
 	await app.register(updateMemberRoute);
 	await app.register(removeMemberRoute);
-	await app.register(createProjectRoute);
-	await app.register(deleteProjectRoute);
-	await app.register(getProjectRoute);
-	await app.register(getProjectsRoute);
-	await app.register(updateProjectRoute);
+	await app.register(createTableRoute);
+	await app.register(getTablesRoute);
+	await app.register(createMenuCategoryRoute);
+	await app.register(getMenuCategoriesRoute);
+	await app.register(createMenuItemRoute);
+	await app.register(getMenuItemsRoute);
+	await app.register(updateMenuItemRoute);
+	await app.register(deleteMenuItemRoute);
 	await app.register(getBillingRoute);
 
 	await app.ready();

@@ -33,11 +33,6 @@ export async function getBillingRoute(app: FastifyInstance) {
 									unit: z.number(),
 									price: z.number(),
 								}),
-								projects: z.object({
-									amount: z.number(),
-									unit: z.number(),
-									price: z.number(),
-								}),
 								total: z.number(),
 							}),
 						}),
@@ -62,20 +57,12 @@ export async function getBillingRoute(app: FastifyInstance) {
 					);
 				}
 
-				const [amountOfMembers, amountOfProjects] = await Promise.all([
-					prisma.member.count({
-						where: {
-							restaurantId: restaurant.id,
-							role: { not: "BILLING" },
-						},
-					}),
-
-					prisma.project.count({
-						where: {
-							restaurantId: restaurant.id,
-						},
-					}),
-				]);
+				const amountOfMembers = await prisma.member.count({
+					where: {
+						restaurantId: restaurant.id,
+						role: { not: "BILLING" },
+					},
+				});
 
 				return {
 					billing: {
@@ -84,12 +71,7 @@ export async function getBillingRoute(app: FastifyInstance) {
 							unit: 10,
 							price: amountOfMembers * 10,
 						},
-						projects: {
-							amount: amountOfProjects,
-							unit: 20,
-							price: amountOfProjects * 20,
-						},
-						total: amountOfMembers * 10 + amountOfProjects * 20,
+						total: amountOfMembers * 10,
 					},
 				};
 			}

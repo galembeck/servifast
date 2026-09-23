@@ -28,7 +28,7 @@ export async function Invites() {
 			)}
 
 			<div className="space-y-2">
-				<h2 className="font-semibold text-lg">Invites</h2>
+				<h2 className="font-semibold text-lg">Convites</h2>
 
 				<div className="rounded border">
 					<Table>
@@ -71,7 +71,7 @@ export async function Invites() {
 							{invites.length === 0 && (
 								<TableRow>
 									<TableCell className="text-center text-muted-foreground">
-										No invites found
+										Sem convites encontrados
 									</TableCell>
 								</TableRow>
 							)}

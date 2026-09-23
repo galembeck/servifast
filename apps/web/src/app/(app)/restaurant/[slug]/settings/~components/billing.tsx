@@ -55,27 +55,6 @@ export async function Billing() {
 
 						<TableBody>
 							<TableRow>
-								<TableCell>Amount of projects</TableCell>
-
-								<TableCell className="text-right">
-									{billing.projects.amount}
-								</TableCell>
-
-								<TableCell className="text-right">
-									{billing.projects.price.toLocaleString("en-US", {
-										style: "currency",
-										currency: "USD",
-									})}{" "}
-									(
-									{billing.projects.unit.toLocaleString("en-US", {
-										style: "currency",
-										currency: "USD",
-									})}{" "}
-									each)
-								</TableCell>
-							</TableRow>
-
-							<TableRow>
 								<TableCell>Amount of seats</TableCell>
 
 								<TableCell className="text-right">

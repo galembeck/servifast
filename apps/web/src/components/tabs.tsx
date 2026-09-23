@@ -8,7 +8,8 @@ export async function Tabs() {
 	const permissions = await ability();
 
 	const canGetMembers = permissions?.can("get", "User");
-	const canGetProjects = permissions?.can("get", "Project");
+	const canGetMenu = permissions?.can("get", "Menu");
+	const canGetTables = permissions?.can("get", "Table");
 
 	const canUpdateRestaurant = permissions?.can("update", "Restaurant");
 	const canGetBillingDetails = permissions?.can("get", "Billing");
@@ -16,7 +17,7 @@ export async function Tabs() {
 	return (
 		<div className="border-b py-4">
 			<nav className="mx-auto flex max-w-300 items-center gap-2">
-				{canGetProjects && (
+				{canGetMenu && (
 					<Button
 						asChild
 						className="border border-transparent text-muted-foreground data-[current=true]:border-border data-[current=true]:text-foreground"
@@ -24,7 +25,20 @@ export async function Tabs() {
 						variant="ghost"
 					>
 						<NavLink href={`/restaurant/${currentRestaurant}`}>
-							Projects
+							Cardápio (Menu Digital)
+						</NavLink>
+					</Button>
+				)}
+
+				{canGetTables && (
+					<Button
+						asChild
+						className="border border-transparent text-muted-foreground data-[current=true]:border-border data-[current=true]:text-foreground"
+						size="sm"
+						variant="ghost"
+					>
+						<NavLink href={`/restaurant/${currentRestaurant}/tables`}>
+							Mesas
 						</NavLink>
 					</Button>
 				)}
@@ -37,7 +51,7 @@ export async function Tabs() {
 						variant="ghost"
 					>
 						<NavLink href={`/restaurant/${currentRestaurant}/members`}>
-							Members
+							Funcionários
 						</NavLink>
 					</Button>
 				)}
@@ -50,7 +64,7 @@ export async function Tabs() {
 						variant="ghost"
 					>
 						<NavLink href={`/restaurant/${currentRestaurant}/settings`}>
-							Settings & Billing
+							Configurações
 						</NavLink>
 					</Button>
 				)}

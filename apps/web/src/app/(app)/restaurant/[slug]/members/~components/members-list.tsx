@@ -28,7 +28,7 @@ export async function MembersList() {
 
 	return (
 		<div className="space-y-2">
-			<h2 className="font-semibold text-lg">Members</h2>
+			<h2 className="font-semibold text-lg">Funcionários</h2>
 
 			<div className="rounded border">
 				<Table>
@@ -54,7 +54,7 @@ export async function MembersList() {
 													className="font-semibold text-[10px] uppercase"
 													variant="secondary"
 												>
-													me
+													EU
 												</Badge>
 											)}
 											{member.userId === restaurant.ownerId && (
@@ -63,7 +63,7 @@ export async function MembersList() {
 													variant="outline"
 												>
 													<Crown />
-													Owner
+													Dono
 												</Badge>
 											)}
 										</span>
@@ -86,7 +86,7 @@ export async function MembersList() {
 												variant="outline"
 											>
 												<ArrowLeftRight className="mr-2 size-4" />
-												Transfer ownership
+												Transferir liderança
 											</Button>
 										)}
 
@@ -112,7 +112,7 @@ export async function MembersList() {
 													variant="destructive"
 												>
 													<UserMinus className="mr-2 size-4" />
-													Remove
+													Remover
 												</Button>
 											</form>
 										)}

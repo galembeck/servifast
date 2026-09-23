@@ -26,20 +26,35 @@ export const prismaMock = {
 		delete: vi.fn(),
 		count: vi.fn(),
 	},
-	project: {
+	invite: {
+		findUnique: vi.fn(),
+		findFirst: vi.fn(),
+		findMany: vi.fn(),
+		create: vi.fn(),
+		delete: vi.fn(),
+	},
+	table: {
 		findUnique: vi.fn(),
 		findFirst: vi.fn(),
 		findMany: vi.fn(),
 		create: vi.fn(),
 		update: vi.fn(),
 		delete: vi.fn(),
-		count: vi.fn(),
 	},
-	invite: {
+	menuCategory: {
 		findUnique: vi.fn(),
 		findFirst: vi.fn(),
 		findMany: vi.fn(),
 		create: vi.fn(),
+		update: vi.fn(),
+		delete: vi.fn(),
+	},
+	menuItem: {
+		findUnique: vi.fn(),
+		findFirst: vi.fn(),
+		findMany: vi.fn(),
+		create: vi.fn(),
+		update: vi.fn(),
 		delete: vi.fn(),
 	},
 	token: {

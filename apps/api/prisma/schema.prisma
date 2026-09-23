@@ -22,7 +22,6 @@ model User {
   invites            Invite[]
   member_on          Member[]
   owns_restaurants Restaurant[]
-  owns_projects      Project[]
 
   @@map("users")
 }
@@ -98,28 +97,72 @@ model Restaurant {
   owner   User   @relation(fields: [ownerId], references: [id])
   ownerId String @map("owner_id")
 
-  invites  Invite[]
-  members  Member[]
-  projects Project[]
+  invites        Invite[]
+  members        Member[]
+  tables         Table[]
+  menuCategories MenuCategory[]
+  menuItems      MenuItem[]
 
   @@map("restaurants")
 }
 
-model Project {
-  id          String  @id @default(uuid())
-  name        String
-  description String
-  slug        String  @unique
-  avatarUrl   String? @map("avatar_url")
+enum TableStatus {
+  FREE
+  OCCUPIED
+  BILL_REQUESTED
+}
+
+model Table {
+  id                String      @id @default(uuid())
+  number            Int
+  positionReference String?     @map("position_reference")
+  seatsCount        Int         @map("seats_count")
+  observations      String?
+  status            TableStatus @default(FREE)
+  occupiedSeats     Int         @default(0) @map("occupied_seats")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
-  restaurantId String       @map("restaurant_id")
+  restaurantId String     @map("restaurant_id")
 
-  owner   User   @relation(fields: [ownerId], references: [id])
-  ownerId String @map("owner_id")
+  @@unique([restaurantId, number])
+  @@map("tables")
+}
 
-  @@map("projects")
+model MenuCategory {
+  id   String @id @default(uuid())
+  name String
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  items MenuItem[]
+
+  @@unique([restaurantId, name])
+  @@map("menu_categories")
+}
+
+model MenuItem {
+  id           String  @id @default(uuid())
+  name         String
+  description  String?
+  priceInCents Int     @map("price_in_cents")
+  imageUrl     String? @map("image_url")
+  isAvailable  Boolean @default(true) @map("is_available")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  category   MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String       @map("category_id")
+
+  @@map("menu_items")
 }

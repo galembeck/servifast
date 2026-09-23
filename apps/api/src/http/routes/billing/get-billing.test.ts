@@ -39,7 +39,6 @@ describe("GET /restaurants/:slug/billing", () => {
 		const token = signToken(app, userId);
 
 		prismaMock.member.count.mockResolvedValueOnce(3);
-		prismaMock.project.count.mockResolvedValueOnce(2);
 
 		const response = await app.inject({
 			method: "GET",
@@ -51,8 +50,7 @@ describe("GET /restaurants/:slug/billing", () => {
 		expect(JSON.parse(response.body)).toMatchObject({
 			billing: {
 				seats: { amount: 3, unit: 10, price: 30 },
-				projects: { amount: 2, unit: 20, price: 40 },
-				total: 70,
+				total: 30,
 			},
 		});
 	});
@@ -80,7 +78,6 @@ describe("GET /restaurants/:slug/billing", () => {
 		const token = signToken(app, userId);
 
 		prismaMock.member.count.mockResolvedValueOnce(1);
-		prismaMock.project.count.mockResolvedValueOnce(1);
 
 		const response = await app.inject({
 			method: "GET",
@@ -97,7 +94,6 @@ describe("GET /restaurants/:slug/billing", () => {
 		const token = signToken(app, userId);
 
 		prismaMock.member.count.mockResolvedValueOnce(2);
-		prismaMock.project.count.mockResolvedValueOnce(1);
 
 		const response = await app.inject({
 			method: "GET",
@@ -114,7 +110,6 @@ describe("GET /restaurants/:slug/billing", () => {
 		const token = signToken(app, userId);
 
 		prismaMock.member.count.mockResolvedValueOnce(2);
-		prismaMock.project.count.mockResolvedValueOnce(1);
 
 		const response = await app.inject({
 			method: "GET",

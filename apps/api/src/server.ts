@@ -1,6 +1,9 @@
+import path from "node:path";
 import "dotenv/config";
 import { fastifyCors } from "@fastify/cors";
 import fastifyJwt from "@fastify/jwt";
+import { fastifyMultipart } from "@fastify/multipart";
+import { fastifyStatic } from "@fastify/static";
 import { fastifySwagger } from "@fastify/swagger";
 import { env } from "@repo/env";
 import ScalarApiReference from "@scalar/fastify-api-reference";
@@ -27,11 +30,12 @@ import { revokeInviteRoute } from "./http/routes/invites/revoke-invite";
 import { getMembersRoute } from "./http/routes/members/get-members";
 import { removeMemberRoute } from "./http/routes/members/remove-member";
 import { updateMemberRoute } from "./http/routes/members/update-member";
-import { createProjectRoute } from "./http/routes/projects/create-project";
-import { deleteProjectRoute } from "./http/routes/projects/delete-project";
-import { getProjectRoute } from "./http/routes/projects/get-project";
-import { getProjectsRoute } from "./http/routes/projects/get-projects";
-import { updateProjectRoute } from "./http/routes/projects/update-project";
+import { createMenuCategoryRoute } from "./http/routes/menu/create-menu-category";
+import { createMenuItemRoute } from "./http/routes/menu/create-menu-item";
+import { deleteMenuItemRoute } from "./http/routes/menu/delete-menu-item";
+import { getMenuCategoriesRoute } from "./http/routes/menu/get-menu-categories";
+import { getMenuItemsRoute } from "./http/routes/menu/get-menu-items";
+import { updateMenuItemRoute } from "./http/routes/menu/update-menu-item";
 import { createRestaurantRoute } from "./http/routes/restaurants/create-restaurant";
 import { deleteRestaurantRoute } from "./http/routes/restaurants/delete-restaurant";
 import { getMembershipRoute } from "./http/routes/restaurants/get-membership";
@@ -39,6 +43,8 @@ import { getRestaurantRoute } from "./http/routes/restaurants/get-restaurant";
 import { getRestaurantsRoute } from "./http/routes/restaurants/get-restaurants";
 import { transferOwnershipRoute } from "./http/routes/restaurants/transfer-ownership";
 import { updateRestaurantRoute } from "./http/routes/restaurants/update-restaurant";
+import { createTableRoute } from "./http/routes/tables/create-table";
+import { getTablesRoute } from "./http/routes/tables/get-tables";
 import { createAccountRoute } from "./http/routes/user/create-account";
 import { getProfileRoute } from "./http/routes/user/get-profile";
 
@@ -84,6 +90,18 @@ app.register(fastifyJwt, {
 
 app.register(fastifyCors);
 
+app.register(fastifyMultipart, {
+	attachFieldsToBody: false,
+	limits: {
+		fileSize: 5 * 1024 * 1024,
+	},
+});
+
+app.register(fastifyStatic, {
+	root: path.join(process.cwd(), "uploads"),
+	prefix: "/uploads/",
+});
+
 app.register(createAccountRoute);
 app.register(authenticateWithPasswordRoute);
 
@@ -100,12 +118,6 @@ app.register(updateRestaurantRoute);
 app.register(deleteRestaurantRoute);
 app.register(transferOwnershipRoute);
 
-app.register(createProjectRoute);
-app.register(deleteProjectRoute);
-app.register(getProjectRoute);
-app.register(getProjectsRoute);
-app.register(updateProjectRoute);
-
 app.register(getMembersRoute);
 app.register(updateMemberRoute);
 app.register(removeMemberRoute);
@@ -118,6 +130,16 @@ app.register(acceptInviteRoute);
 app.register(rejectInviteRoute);
 app.register(revokeInviteRoute);
 app.register(getPendingInvitesRoute);
+
+app.register(createTableRoute);
+app.register(getTablesRoute);
+
+app.register(createMenuCategoryRoute);
+app.register(getMenuCategoriesRoute);
+app.register(createMenuItemRoute);
+app.register(getMenuItemsRoute);
+app.register(updateMenuItemRoute);
+app.register(deleteMenuItemRoute);
 
 app.register(getBillingRoute);
 

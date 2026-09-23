@@ -89,7 +89,7 @@ export async function createInviteAction(data: FormData) {
 
 	return {
 		success: true,
-		title: "Project saved!",
+		title: "Invite sent!",
 		description: "Successfully created the invite.",
 		errors: null,
 	};
