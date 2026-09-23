@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/card";
 import { ability, getCurrentRestaurant } from "@/providers/auth-provider";
 import { RestaurantForm } from "../../~components/restaurant-form";
-import { Billing } from "./~components/billing";
 import { DeleteRestaurantButton } from "./~components/delete-restaurant-button";
 
 export default async function RestaurantSettingsPage() {
@@ -17,7 +16,6 @@ export default async function RestaurantSettingsPage() {
 	const permissions = await ability();
 
 	const canUpdateRestaurant = permissions?.can("update", "Restaurant");
-	const canGetBillingDetails = permissions?.can("get", "Billing");
 
 	const canDeleteRestaurant = permissions?.can("delete", "Restaurant");
 
@@ -52,8 +50,6 @@ export default async function RestaurantSettingsPage() {
 						</CardContent>
 					</Card>
 				)}
-
-				{canGetBillingDetails && <Billing />}
 
 				{canDeleteRestaurant && (
 					<Card className="flex w-full flex-row items-center justify-between">

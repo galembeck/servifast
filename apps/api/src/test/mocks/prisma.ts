@@ -57,6 +57,14 @@ export const prismaMock = {
 		update: vi.fn(),
 		delete: vi.fn(),
 	},
+	expense: {
+		findUnique: vi.fn(),
+		findFirst: vi.fn(),
+		findMany: vi.fn(),
+		create: vi.fn(),
+		update: vi.fn(),
+		delete: vi.fn(),
+	},
 	token: {
 		findUnique: vi.fn(),
 		create: vi.fn(),

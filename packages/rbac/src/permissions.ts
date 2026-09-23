@@ -28,7 +28,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
 
 		can(["get", "update"], "User");
 
-		can("get", "Billing");
+		can(["get", "create"], "Billing");
 	},
 
 	WAITER(_, { can }) {
@@ -40,7 +40,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
 	CASHIER(_, { can }) {
 		can(["get", "update"], "Order");
 		can("manage", "Shift");
-		can("get", "Billing");
+		can(["get", "create"], "Billing");
 	},
 
 	KITCHEN(_, { can }) {

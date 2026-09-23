@@ -56,7 +56,20 @@ export async function Tabs() {
 					</Button>
 				)}
 
-				{(canUpdateRestaurant || canGetBillingDetails) && (
+				{canGetBillingDetails && (
+					<Button
+						asChild
+						className="border border-transparent text-muted-foreground data-[current=true]:border-border data-[current=true]:text-foreground"
+						size="sm"
+						variant="ghost"
+					>
+						<NavLink href={`/restaurant/${currentRestaurant}/billing`}>
+							Financeiro
+						</NavLink>
+					</Button>
+				)}
+
+				{canUpdateRestaurant && (
 					<Button
 						asChild
 						className="border border-transparent text-muted-foreground data-[current=true]:border-border data-[current=true]:text-foreground"

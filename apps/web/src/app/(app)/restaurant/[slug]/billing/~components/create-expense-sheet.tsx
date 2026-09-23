@@ -3,6 +3,7 @@
 import { AlertTriangle, Loader2, Plus } from "lucide-react";
 import { useState } from "react";
 import { CurrencyInput } from "@/components/currency-input";
+import { DatePickerInput } from "@/components/date-picker-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,46 +22,57 @@ import {
 	SheetTitle,
 	SheetTrigger,
 } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
 import { useFormState } from "@/hooks/use-form-state";
-import { createMenuItemAction } from "../~actions/actions";
+import { createExpenseAction } from "../~actions/actions";
 
-interface CreateItemSheetProps {
-	categories: { id: string; name: string }[];
-}
+const EXPENSE_CATEGORIES = [
+	"Ingredientes",
+	"Salários",
+	"Aluguel",
+	"Utilidades",
+	"Manutenção",
+	"Marketing",
+	"Impostos",
+	"Outros",
+];
 
-export function CreateItemSheet({ categories }: CreateItemSheetProps) {
+export function CreateExpenseSheet() {
 	const [open, setOpen] = useState(false);
+	const [category, setCategory] = useState("");
 
-	const [{ success, title, description, errors }, handleCreateItem, isPending] =
-		useFormState(createMenuItemAction, () => {
-			setOpen(false);
-		});
+	const [
+		{ success, title, description, errors },
+		handleCreateExpense,
+		isPending,
+	] = useFormState(createExpenseAction, () => {
+		setOpen(false);
+		setCategory("");
+	});
 
 	return (
 		<Sheet onOpenChange={setOpen} open={open}>
 			<SheetTrigger asChild>
-				<Button disabled={categories.length === 0} size="sm">
+				<Button size="sm">
 					<Plus className="mr-2 size-4" />
-					Adicionar produto
+					Registrar despesa
 				</Button>
 			</SheetTrigger>
 
 			<SheetContent>
 				<SheetHeader>
-					<SheetTitle>Adicionar produto</SheetTitle>
+					<SheetTitle>Registrar despesa</SheetTitle>
 				</SheetHeader>
 
 				<form
 					className="space-y-4 px-4"
-					id="create-item-form"
-					onSubmit={handleCreateItem}
+					id="create-expense-form"
+					onSubmit={handleCreateExpense}
 				>
 					{success === false && (title ?? description) && (
 						<Alert variant="destructive">
 							<AlertTriangle className="size-4" />
 
-							<AlertTitle>{title ?? "Erro ao criar produto!"}</AlertTitle>
+							<AlertTitle>{title ?? "Erro ao registrar despesa!"}</AlertTitle>
 
 							{description && (
 								<AlertDescription>
@@ -71,77 +83,65 @@ export function CreateItemSheet({ categories }: CreateItemSheetProps) {
 					)}
 
 					<div className="space-y-3">
-						<Label htmlFor="name">Nome do produto</Label>
+						<Label htmlFor="amount">Valor (R$)</Label>
 
-						<Input id="name" name="name" placeholder="Ex.: X-Burguer" />
+						<CurrencyInput id="amount" name="amount" />
 
-						{errors?.name && (
+						{errors?.amount && (
 							<p className="font-medium text-destructive text-xs">
-								{errors.name[0]}
+								{errors.amount[0]}
 							</p>
 						)}
 					</div>
 
 					<div className="space-y-3">
-						<Label htmlFor="description">Descrição</Label>
+						<Label htmlFor="category">Categoria</Label>
 
-						<Textarea
-							id="description"
-							name="description"
-							placeholder="Ex.: Pão, hambúrguer, queijo e salada"
-						/>
-
-						{errors?.description && (
-							<p className="font-medium text-destructive text-xs">
-								{errors.description[0]}
-							</p>
-						)}
-					</div>
-
-					<div className="space-y-3">
-						<Label htmlFor="price">Preço (R$)</Label>
-
-						<CurrencyInput id="price" name="price" />
-
-						{errors?.price && (
-							<p className="font-medium text-destructive text-xs">
-								{errors.price[0]}
-							</p>
-						)}
-					</div>
-
-					<div className="space-y-3">
-						<Label htmlFor="categoryId">Categoria</Label>
-
-						<Select name="categoryId">
-							<SelectTrigger className="w-full" id="categoryId">
+						<Select
+							name="category"
+							onValueChange={setCategory}
+							value={category}
+						>
+							<SelectTrigger className="w-full" id="category">
 								<SelectValue placeholder="Selecione uma categoria" />
 							</SelectTrigger>
 
 							<SelectContent>
-								{categories.map((category) => (
-									<SelectItem key={category.id} value={category.id}>
-										{category.name}
+								{EXPENSE_CATEGORIES.map((expenseCategory) => (
+									<SelectItem key={expenseCategory} value={expenseCategory}>
+										{expenseCategory}
 									</SelectItem>
 								))}
 							</SelectContent>
 						</Select>
 
-						{errors?.categoryId && (
+						{errors?.category && (
 							<p className="font-medium text-destructive text-xs">
-								{errors.categoryId[0]}
+								{errors.category[0]}
 							</p>
 						)}
 					</div>
 
+					{category === "Outros" && (
+						<div className="space-y-3">
+							<Label htmlFor="customCategory">Qual categoria?</Label>
+
+							<Input
+								id="customCategory"
+								name="customCategory"
+								placeholder="Ex.: Uniformes"
+							/>
+						</div>
+					)}
+
 					<div className="space-y-3">
-						<Label htmlFor="image">Imagem</Label>
+						<Label htmlFor="date">Data</Label>
 
-						<Input accept="image/*" id="image" name="image" type="file" />
+						<DatePickerInput id="date" name="date" />
 
-						{errors?.image && (
+						{errors?.date && (
 							<p className="font-medium text-destructive text-xs">
-								{errors.image[0]}
+								{errors.date[0]}
 							</p>
 						)}
 					</div>
@@ -153,7 +153,7 @@ export function CreateItemSheet({ categories }: CreateItemSheetProps) {
 								Salvando...
 							</span>
 						) : (
-							"Salvar produto"
+							"Salvar despesa"
 						)}
 					</Button>
 				</form>

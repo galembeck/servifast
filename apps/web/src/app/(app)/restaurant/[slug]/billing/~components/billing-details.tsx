@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
 
-export async function Billing() {
+export async function BillingDetails() {
 	const currentRestaurant = await getCurrentRestaurant();
 
 	// biome-ignore lint/style/noNonNullAssertion: always come as string

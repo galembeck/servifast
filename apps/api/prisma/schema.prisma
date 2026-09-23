@@ -102,6 +102,7 @@ model Restaurant {
   tables         Table[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
+  expenses       Expense[]
 
   @@map("restaurants")
 }
@@ -165,4 +166,18 @@ model MenuItem {
   categoryId String       @map("category_id")
 
   @@map("menu_items")
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  category      String
+  amountInCents Int      @map("amount_in_cents")
+  occurredAt    DateTime @map("occurred_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  @@map("expenses")
 }

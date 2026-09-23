@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Loader2, Pencil } from "lucide-react";
 import { useState } from "react";
+import { CurrencyInput } from "@/components/currency-input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,15 +121,10 @@ export function EditItemSheet({ categories, item }: EditItemSheetProps) {
 					<div className="space-y-3">
 						<Label htmlFor="price">Preço (R$)</Label>
 
-						<Input
-							defaultValue={(item.priceInCents / 100).toFixed(2)}
+						<CurrencyInput
+							defaultValueInCents={item.priceInCents}
 							id="price"
-							inputMode="decimal"
-							min={0}
 							name="price"
-							placeholder="Ex.: 24.90"
-							step="0.01"
-							type="number"
 						/>
 
 						{errors?.price && (

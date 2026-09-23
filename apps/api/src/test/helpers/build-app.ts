@@ -11,6 +11,7 @@ import { errorHandler } from "@/http/error-handler";
 import { authenticateWithPasswordRoute } from "@/http/routes/auth/authenticate-with-password";
 import { requestPasswordRecoveryRoute } from "@/http/routes/auth/request-password-recovery";
 import { resetPasswordRoute } from "@/http/routes/auth/reset-password";
+import { createExpenseRoute } from "@/http/routes/billing/create-expense";
 import { getBillingRoute } from "@/http/routes/billing/get-billing";
 import { acceptInviteRoute } from "@/http/routes/invites/accept-invite";
 import { createInviteRoute } from "@/http/routes/invites/create-invite";
@@ -86,6 +87,7 @@ export async function buildApp() {
 	await app.register(updateMenuItemRoute);
 	await app.register(deleteMenuItemRoute);
 	await app.register(getBillingRoute);
+	await app.register(createExpenseRoute);
 
 	await app.ready();
 
