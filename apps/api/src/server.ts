@@ -46,6 +46,7 @@ import { transferOwnershipRoute } from "./http/routes/restaurants/transfer-owner
 import { updateRestaurantRoute } from "./http/routes/restaurants/update-restaurant";
 import { createTableRoute } from "./http/routes/tables/create-table";
 import { getTablesRoute } from "./http/routes/tables/get-tables";
+import { openTabRoute } from "./http/routes/tables/open-tab";
 import { createAccountRoute } from "./http/routes/user/create-account";
 import { getProfileRoute } from "./http/routes/user/get-profile";
 
@@ -134,6 +135,7 @@ app.register(getPendingInvitesRoute);
 
 app.register(createTableRoute);
 app.register(getTablesRoute);
+app.register(openTabRoute);
 
 app.register(createMenuCategoryRoute);
 app.register(getMenuCategoriesRoute);
