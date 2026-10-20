@@ -14,7 +14,7 @@ export default async function RestaurantTablesPage() {
 			</div>
 
 			{permissions?.can("get", "Table") ? (
-				<TableGrid />
+				<TableGrid canOpenTab={!!permissions?.can("create", "Order")} />
 			) : (
 				<p className="text-muted-foreground text-sm">
 					Você não tem permissão para ver as mesas deste restaurante.

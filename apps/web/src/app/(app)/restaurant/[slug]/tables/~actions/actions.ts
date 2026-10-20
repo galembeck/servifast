@@ -4,6 +4,7 @@ import { HTTPError } from "ky";
 import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createTable } from "@/api/http/services/create-table";
+import { openTab } from "@/api/http/services/open-tab";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
 
 const createTableSchema = z.object({
@@ -68,6 +69,66 @@ export async function createTableAction(data: FormData) {
 		success: true,
 		title: "Mesa criada!",
 		description: "A mesa foi criada com sucesso.",
+		errors: null,
+	};
+}
+
+const openTabSchema = z.object({
+	tableId: z.string().uuid(),
+	customerName: z.string().optional(),
+	peopleCount: z.coerce
+		.number()
+		.int()
+		.positive({ message: "A quantidade de pessoas deve ser maior que zero." })
+		.optional(),
+});
+
+export async function openTabAction(data: FormData) {
+	const result = openTabSchema.safeParse(Object.fromEntries(data));
+
+	if (!result.success) {
+		const errors = result.error.flatten().fieldErrors;
+		return { success: false, title: null, description: null, errors };
+	}
+
+	const { tableId, customerName, peopleCount } = result.data;
+
+	// biome-ignore lint/style/noNonNullAssertion: always comes as string
+	const currentRestaurant = (await getCurrentRestaurant())!;
+
+	try {
+		await openTab({
+			restaurant: currentRestaurant,
+			tableId,
+			customerName: customerName || undefined,
+			peopleCount,
+		});
+	} catch (error) {
+		revalidateTag(`${currentRestaurant}/tables`);
+
+		if (error instanceof HTTPError) {
+			const { title, description } = (await error.response.json()) as {
+				title: string | null;
+				description: string | null;
+			};
+
+			return { success: false, title, description, errors: null };
+		}
+
+		return {
+			success: false,
+			title: "Erro inesperado",
+			description: "Tente novamente em alguns instantes.",
+			errors: null,
+		};
+	}
+
+	revalidateTag(`${currentRestaurant}/tables`);
+
+	return {
+		success: true,
+		title: "Comanda aberta!",
+		description: "O atendimento foi iniciado.",
 		errors: null,
 	};
 }
