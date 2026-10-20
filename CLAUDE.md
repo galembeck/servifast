@@ -4,176 +4,150 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**ServiFast** is a restaurant control-panel system (waiters, kitchen, CEOs, etc.), built by adapting a generic multi-tenant SaaS + RBAC template. The original template's `Organization` model has been renamed to `Restaurant` throughout the stack (DB, API routes, RBAC subject, frontend), and `packages/rbac`'s permissions now reflect restaurant-specific roles (OWNER/MANAGER/WAITER/CASHIER/KITCHEN/BILLING). `Project`/`Invite` still reflect the original template and haven't been reworked for the restaurant domain yet — expect that to change as feature work progresses. Authentication is e-mail/CPF (Brazilian document) + password only; there is no GitHub/OAuth login and no public self-registration in the restaurant app (staff accounts are provisioned, not self-signed-up).
+**ServiFast** is a restaurant control-panel system (waiters, kitchen, CEOs, etc.), built by adapting a generic multi-tenant SaaS + RBAC template. The original template's `Organization` model has been renamed to `Restaurant` throughout the stack (DB, API routes, RBAC subject, frontend), and `packages/rbac`'s permissions now reflect restaurant-specific roles (OWNER/MANAGER/WAITER/CASHIER/KITCHEN/BILLING). `Project`/`Invite` still reflect the original template and haven't been reworked for the restaurant domain yet.
+
+Authentication is e-mail/CPF (Brazilian document) + password only; there is no GitHub/OAuth login and no public self-registration (staff accounts are provisioned via invites).
 
 Frontend UI copy is Portuguese (matching the target users); backend and code-level identifiers (models, routes, variables, RBAC subjects) stay English.
 
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js 16 (App Router), React 19, Tailwind CSS v4, shadcn/ui |
+| Backend | Fastify 5 + `fastify-type-provider-zod` |
+| ORM | Prisma 7 (client output: `apps/api/src/generated/prisma`) |
+| Auth | JWT (`@fastify/jwt`), bcryptjs |
+| RBAC | CASL (`@casl/ability`) via `packages/rbac` |
+| API client | `ky` v2 + TanStack Query v5 |
+| Database | PostgreSQL (Docker) |
+| Monorepo | Turborepo + pnpm workspaces |
+| Email | Resend (`@resend`) |
+
 ## Monorepo Structure
 
-This is a **Turborepo + pnpm** monorepo. Workspace roots are declared in `pnpm-workspace.yaml`:
+Turborepo + pnpm monorepo. Workspace roots declared in `pnpm-workspace.yaml`:
 
-- `apps/*` — application packages (Next.js apps)
-- `packages/*` — shared library packages
-- `config/*` — shared tooling configs (not published)
-  - `config/eslint-config` — exports `./base`, `./next-js`, `./node`
-  - `config/prettier-config` — Prettier config with `prettier-plugin-tailwindcss`
-  - `config/typescript-config` — exports `base.json`, `nextjs.json`
+- `apps/api` — Fastify REST API (`@repo/api`)
+- `apps/web` — Next.js frontend (`web`)
+- `packages/rbac` — Shared CASL ability definitions and permission rules
+- `packages/env` — Shared env validation via `@t3-oss/env-nextjs`
+- `config/eslint-config` — Exports `./base`, `./next-js`, `./node`
+- `config/prettier-config` — Prettier with `prettier-plugin-tailwindcss`
+- `config/typescript-config` — Exports `base.json`, `nextjs.json`
 
-Internal packages reference each other via `workspace:*` protocol (e.g., `"@repo/prettier-config": "workspace:*"`).
+Internal packages use `workspace:*` protocol.
 
 ## Commands
 
 ```bash
 pnpm dev           # Run all apps in dev mode (via Turbo)
-pnpm build         # Build all packages (respects Turbo dependency order)
-pnpm check-types   # Run TypeScript type checking across all packages
+pnpm build         # Build all packages
+pnpm check-types   # TypeScript type checking across all packages
 pnpm check         # Lint/format check via Ultracite (Biome)
 pnpm fix           # Auto-fix lint/format issues via Ultracite
 ```
 
-Run a single Turbo task for a specific package:
+Run a single Turbo task:
 ```bash
-pnpm turbo run build --filter=@repo/<package-name>
-pnpm turbo run dev --filter=@repo/<app-name>
+pnpm turbo run dev --filter=@repo/api
+pnpm turbo run dev --filter=web
 ```
+
+Database (requires Docker running):
+```bash
+docker compose up -d                         # Start PostgreSQL on port 5432
+pnpm --filter @repo/api db:migrate           # Run Prisma migrations
+pnpm --filter @repo/api db:seed              # Seed the database
+pnpm --filter @repo/api db:studio            # Open Prisma Studio
+pnpm --filter @repo/api db:generate          # Regenerate Prisma client
+```
+
+Tests (API only — no frontend tests):
+```bash
+pnpm --filter @repo/api test                 # Run all tests once
+pnpm --filter @repo/api test:watch           # Watch mode
+pnpm --filter @repo/api test:coverage        # Coverage report
+```
+
+All DB and env-loading scripts prefix with `pnpm env:load` (uses `dotenv-cli` to read root `.env`).
 
 ## Linting & Formatting
 
-**Biome** is the formatter and linter (configured in `biome.json`), driven by **Ultracite** presets (`ultracite/biome/core` + `ultracite/biome/react`). Key style rules: tabs for indentation, double quotes for JS/TS.
+**Biome** is the formatter and linter (`biome.json`), driven by **Ultracite** presets. Key style: tabs, double quotes.
 
-A pre-commit hook (`/.husky/pre-commit`) auto-runs `pnpm dlx ultracite fix` and re-stages changed files. It does not run tests — run `pnpm --filter @repo/api test` manually before committing API changes.
-
-A PostToolUse hook in `.claude/settings.json` runs `pnpm fix --skip=correctness/noUnusedImports` after every file Write or Edit — files are auto-fixed on save.
-
-ESLint config (in `config/eslint-config`) is still present for framework-level rules (Next.js, React hooks) and Turbo env-var checks, but Biome handles most linting.
-
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
-
-## Quick Reference
-
-- **Format code**: `pnpm dlx ultracite fix`
-- **Check for issues**: `pnpm dlx ultracite check`
-- **Diagnose setup**: `pnpm dlx ultracite doctor`
-
-Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
-
----
-
-## Core Principles
-
-Write code that is **accessible, performant, type-safe, and maintainable**. Focus on clarity and explicit intent over brevity.
-
-### Type Safety & Explicitness
-
-- Use explicit types for function parameters and return values when they enhance clarity
-- Prefer `unknown` over `any` when the type is genuinely unknown
-- Use const assertions (`as const`) for immutable values and literal types
-- Leverage TypeScript's type narrowing instead of type assertions
-- Use meaningful variable names instead of magic numbers - extract constants with descriptive names
-
-### Modern JavaScript/TypeScript
-
-- Use arrow functions for callbacks and short functions
-- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
-- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
-- Prefer template literals over string concatenation
-- Use destructuring for object and array assignments
-- Use `const` by default, `let` only when reassignment is needed, never `var`
-
-### Async & Promises
-
-- Always `await` promises in async functions - don't forget to use the return value
-- Use `async/await` syntax instead of promise chains for better readability
-- Handle errors appropriately in async code with try-catch blocks
-- Don't use async functions as Promise executors
-
-### React & JSX
-
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-  - Provide meaningful alt text for images
-  - Use proper heading hierarchy
-  - Add labels for form inputs
-  - Include keyboard event handlers alongside mouse events
-  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
-
-### Error Handling & Debugging
-
-- Remove `console.log`, `debugger`, and `alert` statements from production code
-- Throw `Error` objects with descriptive messages, not strings or other values
-- Use `try-catch` blocks meaningfully - don't catch errors just to rethrow them
-- Prefer early returns over nested conditionals for error cases
-
-### Code Organization
-
-- Keep functions focused and under reasonable cognitive complexity limits
-- Extract complex conditions into well-named boolean variables
-- Use early returns to reduce nesting
-- Prefer simple conditionals over nested ternary operators
-- Group related code together and separate concerns
-
-### Security
-
-- Add `rel="noopener"` when using `target="_blank"` on links
-- Avoid `dangerouslySetInnerHTML` unless absolutely necessary
-- Don't use `eval()` or assign directly to `document.cookie`
-- Validate and sanitize user input
-
-### Performance
-
-- Avoid spread syntax in accumulators within loops
-- Use top-level regex literals instead of creating them in loops
-- Prefer specific imports over namespace imports
-- Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
-
-### Framework-Specific Guidance
-
-**React 19+:**
-- Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
-
----
-
-## Testing
-
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
-
-## When Biome Can't Help
-
-Biome's linter will catch most issues automatically. Focus your attention on:
-
-1. **Business logic correctness** - Biome can't validate your algorithms
-2. **Meaningful naming** - Use descriptive names for functions, variables, and types
-3. **Architecture decisions** - Component structure, data flow, and API design
-4. **Edge cases** - Handle boundary conditions and error states
-5. **User experience** - Accessibility, performance, and usability considerations
-6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
-
----
-
-Most formatting and common issues are automatically fixed by Biome. Run `pnpm dlx ultracite fix` before committing to ensure compliance.
+- Pre-commit hook (`/.husky/pre-commit`) auto-runs `pnpm dlx ultracite fix` and re-stages changed files.
+- A PostToolUse hook in `.claude/settings.json` runs `pnpm fix --skip=correctness/noUnusedImports` after every file Write or Edit.
+- ESLint (`config/eslint-config`) handles framework-level rules (Next.js, React hooks, Turbo env-var checks) only.
 
 ## TypeScript
 
-Base tsconfig (`config/typescript-config/base.json`) enforces strict mode with `noUncheckedIndexedAccess` enabled. Array index access always returns `T | undefined` — handle accordingly.
+Base tsconfig enforces strict mode with `noUncheckedIndexedAccess` — array index access returns `T | undefined`. Module resolution is `NodeNext` — TypeScript source files need explicit `.js` extensions on imports.
 
-Module resolution uses `NodeNext` — imports must include explicit `.js` extensions in TypeScript source files.
+## Architecture
+
+### API (`apps/api`)
+
+Fastify 5 with `fastify-type-provider-zod` for end-to-end type safety. Every route is a Fastify plugin registered in `src/server.ts`. Route files live in `src/http/routes/<domain>/` and follow a one-file-per-operation pattern (e.g., `create-restaurant.ts`, `get-restaurants.ts`).
+
+**Auth middleware** (`src/http/middlewares/auth.ts`): a Fastify plugin that decorates each request with:
+- `request.getCurrentUserId()` — verifies JWT, returns user ID
+- `request.getUserMembership(slug)` — looks up membership + restaurant for the authenticated user
+
+**Error handling**: domain exceptions in `src/http/_errors/exceptions/` (organized by domain), HTTP error classes in `src/http/routes/_errors/`. The global error handler in `src/http/error-handler.ts` maps them to status codes.
+
+**Static files**: multipart uploads are limited to 5 MB; uploaded files are served from `GET /uploads/:filename` via `@fastify/static`.
+
+**API docs**: interactive Scalar docs auto-generated from OpenAPI schema at `http://localhost:3333/docs`.
+
+### Frontend (`apps/web`)
+
+Next.js App Router with `src/` directory layout.
+
+**Route groups and co-location conventions:**
+- `(app)/` — authenticated app shell (layout includes sidebar/nav)
+- `@sheet/` — parallel route for sheets/modals (intercepts create-restaurant)
+- `~components/` — co-located components private to that route segment
+- `~actions/` — Server Actions (Next.js `"use server"`) private to that segment
+- `_actions/` — same as `~actions/` (older convention, some routes use underscore)
+
+**API client** (`src/api/http/api-client.ts`): a `ky` instance that auto-attaches the `accessToken` cookie as a Bearer token. Works in both Server Components (reads from `next/headers`) and Client Components (reads from `cookies-next`). Service functions live in `src/api/http/services/`.
+
+**Data fetching:** Server Components call service functions directly. Client Components that need reactivity use TanStack Query (`src/api/react-query.ts`).
+
+**Auth provider** (`src/providers/auth-provider.ts`): server-side helpers:
+- `isAuthenticated()` — checks for `accessToken` cookie
+- `getCurrentRestaurant()` — reads `restaurant` cookie (slug)
+- `ability()` — fetches membership, returns a CASL ability object
+- `auth()` — redirects to sign-in if unauthenticated
+
+### RBAC (`packages/rbac`)
+
+Built on CASL. `defineAbilityFor(user)` returns an `AppAbility` instance based on the user's role. Permission subjects: `Restaurant`, `User`, `Invite`, `Menu`, `Order`, `Table`, `Shift`, `Billing`.
+
+Use `ability()` from `auth-provider.ts` in Server Components to gate UI. `Order`, `Table`, `Shift` subjects are defined ahead of their feature routes — no DB models exist yet.
+
+Owner-level restriction: only the restaurant's `ownerId` may call `transfer_ownership` or `update` on `Restaurant`, even for users with the OWNER role.
+
+### Environment Variables
+
+All env vars are validated in `packages/env/index.ts` via `@t3-oss/env-nextjs`. Root `.env` is loaded by each app's scripts via `dotenv-cli`. Required vars: `DATABASE_URL`, `JWT_SECRET`, `NEXT_PUBLIC_API_URL`. Optional: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `WEB_URL`.
+
+## Testing
+
+Tests are in `apps/api` only (Vitest). The Prisma client is **manually mocked** (not hitting a real DB) — the mock is in `src/test/mocks/prisma.ts` and replaces `@/lib/prisma` via `vi.mock`. Each test file must call `resetPrismaMocks()` in `beforeEach` to clear state.
+
+Test helpers:
+- `buildApp()` — creates a full Fastify app with all routes registered (used for integration-style route tests)
+- `signToken(app, userId)` — returns a signed JWT for a given user ID
+- `mockMembership(userId, role)` — configures `prismaMock.member.findFirst` to return a membership + restaurant fixture
+
+Run the full suite with `pnpm --filter @repo/api test` — no DB required.
 
 ## Adding a New Package
 
 1. Create directory under `apps/` or `packages/`
-2. Add a `package.json` with `"name": "@repo/<name>"` and `"private": true`
-3. Extend the appropriate tsconfig: `{ "extends": "@repo/typescript-config/base.json" }`
-4. Reference shared ESLint config: `import { config } from "@repo/eslint-config/base"`
-5. No need to update `pnpm-workspace.yaml` — the globs already cover new packages
+2. Add `package.json` with `"name": "@repo/<name>"` and `"private": true`
+3. Extend tsconfig: `{ "extends": "@repo/typescript-config/base.json" }`
+4. Reference ESLint: `import { config } from "@repo/eslint-config/base"`
+5. No need to update `pnpm-workspace.yaml` — globs already cover new packages

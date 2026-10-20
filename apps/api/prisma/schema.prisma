@@ -100,6 +100,7 @@ model Restaurant {
   invites        Invite[]
   members        Member[]
   tables         Table[]
+  tabs           Tab[]
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
   expenses       Expense[]
@@ -128,8 +129,27 @@ model Table {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String     @map("restaurant_id")
 
+  tabs Tab[]
+
   @@unique([restaurantId, number])
   @@map("tables")
+}
+
+model Tab {
+  id           String   @id @default(uuid())
+  customerName String?  @map("customer_name")
+  peopleCount  Int?     @map("people_count")
+  openedAt     DateTime @default(now()) @map("opened_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  table        Table      @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  tableId      String     @map("table_id")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  @@map("tabs")
 }
 
 model MenuCategory {

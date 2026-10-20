@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { hasZodFastifySchemaValidationErrors } from "fastify-type-provider-zod";
 import { ZodError, z } from "zod";
 import { BadRequestError } from "./routes/_errors/bad-request-error";
+import { ConflictError } from "./routes/_errors/conflict-error";
 import { NotFoundError } from "./routes/_errors/not-found-error";
 import { UnauthorizedError } from "./routes/_errors/unauthorized-error";
 
@@ -44,6 +45,15 @@ export const errorHandler: FastifyErrorHandler = (error, request, reply) => {
 	if (error instanceof NotFoundError) {
 		return reply.status(404).send({
 			statusCode: 404,
+			title: error.title,
+			message: error.code,
+			description: error.description,
+		});
+	}
+
+	if (error instanceof ConflictError) {
+		return reply.status(409).send({
+			statusCode: 409,
 			title: error.title,
 			message: error.code,
 			description: error.description,
