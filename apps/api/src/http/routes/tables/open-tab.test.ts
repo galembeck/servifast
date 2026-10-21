@@ -335,6 +335,43 @@ describe("POST /restaurants/:slug/tables/:tableId/open-tab", () => {
 		});
 	});
 
+	it("rollback: se tab.create falhar, table.updateMany não é chamado e mesa permanece FREE", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "WAITER");
+		const tableId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.table.findUnique.mockResolvedValue(
+			makeFreeTable(restaurant.id, tableId)
+		);
+
+		const updateManySpy = vi.fn();
+		prismaMock.$transaction.mockImplementation((fn: unknown) => {
+			if (typeof fn === "function") {
+				const tx = {
+					tab: {
+						create: vi
+							.fn()
+							.mockRejectedValue(new Error("DB constraint violation")),
+					},
+					table: { updateMany: updateManySpy },
+				};
+				return fn(tx);
+			}
+			return fn;
+		});
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/restaurants/${restaurant.slug}/tables/${tableId}/open-tab`,
+			headers: { Authorization: `Bearer ${token}` },
+			body: {},
+		});
+
+		expect(response.statusCode).toBe(500);
+		expect(updateManySpy).not.toHaveBeenCalled();
+	});
+
 	it("atomicidade: se updateMany retornar count=0, lança 409 e não persiste tab (concorrência)", async () => {
 		const userId = faker.string.uuid();
 		const { restaurant } = mockMembership(userId, "WAITER");
