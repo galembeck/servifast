@@ -26,6 +26,11 @@ export async function getMenuItemsRoute(app: FastifyInstance) {
 					}),
 					querystring: z.object({
 						categoryId: z.uuid().optional(),
+						available: z
+							.enum(["true", "false"])
+							.transform((v) => v === "true")
+							.optional(),
+						search: z.string().optional(),
 					}),
 					response: {
 						200: z.object({
@@ -46,7 +51,7 @@ export async function getMenuItemsRoute(app: FastifyInstance) {
 			},
 			async (request) => {
 				const { slug } = request.params;
-				const { categoryId } = request.query;
+				const { categoryId, available, search } = request.query;
 
 				const userId = await request.getCurrentUserId();
 				const { restaurant, membership } =
@@ -66,6 +71,10 @@ export async function getMenuItemsRoute(app: FastifyInstance) {
 					where: {
 						restaurantId: restaurant.id,
 						...(categoryId ? { categoryId } : {}),
+						...(available === undefined ? {} : { isAvailable: available }),
+						...(search
+							? { name: { contains: search, mode: "insensitive" } }
+							: {}),
 					},
 					orderBy: {
 						createdAt: "asc",

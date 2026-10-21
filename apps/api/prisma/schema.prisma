@@ -104,6 +104,7 @@ model Restaurant {
   menuCategories MenuCategory[]
   menuItems      MenuItem[]
   expenses       Expense[]
+  orderItems     OrderItem[]
 
   @@map("restaurants")
 }
@@ -136,10 +137,11 @@ model Table {
 }
 
 model Tab {
-  id           String   @id @default(uuid())
-  customerName String?  @map("customer_name")
-  peopleCount  Int?     @map("people_count")
-  openedAt     DateTime @default(now()) @map("opened_at")
+  id           String    @id @default(uuid())
+  customerName String?   @map("customer_name")
+  peopleCount  Int?      @map("people_count")
+  openedAt     DateTime  @default(now()) @map("opened_at")
+  closedAt     DateTime? @map("closed_at")
 
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -148,6 +150,8 @@ model Tab {
 
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String     @map("restaurant_id")
+
+  items OrderItem[]
 
   @@map("tabs")
 }
@@ -185,7 +189,37 @@ model MenuItem {
   category   MenuCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   categoryId String       @map("category_id")
 
+  orderItems OrderItem[]
+
   @@map("menu_items")
+}
+
+enum OrderItemStatus {
+  RECEIVED
+
+  @@map("order_item_status")
+}
+
+model OrderItem {
+  id               String          @id @default(uuid())
+  quantity         Int
+  notes            String?
+  status           OrderItemStatus @default(RECEIVED)
+  unitPriceInCents Int             @map("unit_price_in_cents")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  tab        Tab    @relation(fields: [tabId], references: [id], onDelete: Cascade)
+  tabId      String @map("tab_id")
+
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+  menuItemId String   @map("menu_item_id")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  @@map("order_items")
 }
 
 model Expense {

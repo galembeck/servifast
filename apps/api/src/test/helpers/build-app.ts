@@ -40,6 +40,8 @@ import { updateRestaurantRoute } from "@/http/routes/restaurants/update-restaura
 import { createTableRoute } from "@/http/routes/tables/create-table";
 import { getTablesRoute } from "@/http/routes/tables/get-tables";
 import { openTabRoute } from "@/http/routes/tables/open-tab";
+import { addTabItemRoute } from "@/http/routes/tabs/add-tab-item";
+import { getTabRoute } from "@/http/routes/tabs/get-tab";
 import { createAccountRoute } from "@/http/routes/user/create-account";
 import { getProfileRoute } from "@/http/routes/user/get-profile";
 
@@ -82,6 +84,8 @@ export async function buildApp() {
 	await app.register(createTableRoute);
 	await app.register(getTablesRoute);
 	await app.register(openTabRoute);
+	await app.register(getTabRoute);
+	await app.register(addTabItemRoute);
 	await app.register(createMenuCategoryRoute);
 	await app.register(getMenuCategoriesRoute);
 	await app.register(createMenuItemRoute);

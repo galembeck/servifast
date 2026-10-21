@@ -104,7 +104,7 @@ export async function openTabAction(data: FormData) {
 			peopleCount,
 		});
 	} catch (error) {
-		revalidateTag(`${currentRestaurant}/tables`);
+		revalidateTag(`${currentRestaurant}/tables`, "layout");
 
 		if (error instanceof HTTPError) {
 			const { title, description } = (await error.response.json()) as {
@@ -123,7 +123,7 @@ export async function openTabAction(data: FormData) {
 		};
 	}
 
-	revalidateTag(`${currentRestaurant}/tables`);
+	revalidateTag(`${currentRestaurant}/tables`, "layout");
 
 	return {
 		success: true,

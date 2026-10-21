@@ -11,6 +11,7 @@ interface GetTablesResponse {
 		observations: string | null;
 		status: TableStatus;
 		occupiedSeats: number;
+		currentTabId: string | null;
 	}[];
 }
 

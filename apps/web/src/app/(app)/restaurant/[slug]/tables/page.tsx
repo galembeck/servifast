@@ -2,7 +2,12 @@ import { ability } from "@/providers/auth-provider";
 import { CreateTableSheet } from "./~components/create-table-sheet";
 import { TableGrid } from "./~components/table-grid";
 
-export default async function RestaurantTablesPage() {
+export default async function RestaurantTablesPage({
+	params,
+}: {
+	params: Promise<{ slug: string }>;
+}) {
+	const { slug } = await params;
 	const permissions = await ability();
 
 	return (
@@ -14,7 +19,10 @@ export default async function RestaurantTablesPage() {
 			</div>
 
 			{permissions?.can("get", "Table") ? (
-				<TableGrid canOpenTab={!!permissions?.can("create", "Order")} />
+				<TableGrid
+					canOpenTab={!!permissions?.can("create", "Order")}
+					slug={slug}
+				/>
 			) : (
 				<p className="text-muted-foreground text-sm">
 					Você não tem permissão para ver as mesas deste restaurante.

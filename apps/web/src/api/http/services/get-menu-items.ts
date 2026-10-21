@@ -12,9 +12,21 @@ interface GetMenuItemsResponse {
 	}[];
 }
 
-export async function getMenuItems(slug: string) {
+export async function getMenuItems(
+	slug: string,
+	params?: { available?: boolean; search?: string }
+) {
+	const searchParams = new URLSearchParams();
+	if (params?.available !== undefined) {
+		searchParams.set("available", String(params.available));
+	}
+	if (params?.search) {
+		searchParams.set("search", params.search);
+	}
+
+	const query = searchParams.toString();
 	const result = await api
-		.get(`restaurants/${slug}/menu-items`, {
+		.get(`restaurants/${slug}/menu-items${query ? `?${query}` : ""}`, {
 			next: {
 				tags: [`${slug}/menu-items`],
 			},

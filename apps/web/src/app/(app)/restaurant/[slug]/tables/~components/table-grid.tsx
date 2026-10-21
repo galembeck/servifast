@@ -55,9 +55,10 @@ function StatusLegend({ tables }: { tables: { status: TableStatus }[] }) {
 
 interface TableGridProps {
 	canOpenTab: boolean;
+	slug: string;
 }
 
-export async function TableGrid({ canOpenTab }: TableGridProps) {
+export async function TableGrid({ canOpenTab, slug }: TableGridProps) {
 	// biome-ignore lint/style/noNonNullAssertion: always comes as string
 	const currentRestaurant = (await getCurrentRestaurant())!;
 
@@ -75,7 +76,7 @@ export async function TableGrid({ canOpenTab }: TableGridProps) {
 		<div className="space-y-4">
 			<StatusLegend tables={tables} />
 
-			<TableGridClient canOpenTab={canOpenTab} tables={tables} />
+			<TableGridClient canOpenTab={canOpenTab} slug={slug} tables={tables} />
 		</div>
 	);
 }

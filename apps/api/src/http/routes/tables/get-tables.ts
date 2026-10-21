@@ -37,6 +37,7 @@ export async function getTablesRoute(app: FastifyInstance) {
 									observations: z.string().nullable(),
 									status: tableStatusSchema,
 									occupiedSeats: z.number(),
+									currentTabId: z.string().uuid().nullable(),
 								})
 							),
 						}),
@@ -60,18 +61,28 @@ export async function getTablesRoute(app: FastifyInstance) {
 					);
 				}
 
-				const tables = await prisma.table.findMany({
+				const rows = await prisma.table.findMany({
 					where: {
 						restaurantId: restaurant.id,
 					},
 					orderBy: {
 						number: "asc",
 					},
+					include: {
+						tabs: {
+							where: { closedAt: null },
+							select: { id: true },
+							take: 1,
+						},
+					},
 				});
 
-				return {
-					tables,
-				};
+				const tables = rows.map(({ tabs, ...table }) => ({
+					...table,
+					currentTabId: tabs[0]?.id ?? null,
+				}));
+
+				return { tables };
 			}
 		);
 }

@@ -47,6 +47,7 @@ describe("GET /restaurants/:slug/tables", () => {
 				observations: null,
 				status: "FREE",
 				occupiedSeats: 0,
+				tabs: [],
 			},
 		]);
 

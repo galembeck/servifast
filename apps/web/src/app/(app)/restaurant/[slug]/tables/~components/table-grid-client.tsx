@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { TableStatus } from "@/api/http/services/get-tables";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -27,6 +28,7 @@ const STATUS_CONFIG: Record<
 };
 
 interface Table {
+	currentTabId: string | null;
 	id: string;
 	number: number;
 	seatsCount: number;
@@ -35,19 +37,32 @@ interface Table {
 
 interface TableGridClientProps {
 	canOpenTab: boolean;
+	slug: string;
 	tables: Table[];
 }
 
-export function TableGridClient({ tables, canOpenTab }: TableGridClientProps) {
+export function TableGridClient({
+	tables,
+	canOpenTab,
+	slug,
+}: TableGridClientProps) {
+	const router = useRouter();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [selectedTable, setSelectedTable] = useState<Table | null>(null);
 
 	function handleTableClick(table: Table) {
-		if (!canOpenTab || table.status !== "FREE") {
+		if (table.status === "FREE") {
+			if (!canOpenTab) {
+				return;
+			}
+			setSelectedTable(table);
+			setDialogOpen(true);
 			return;
 		}
-		setSelectedTable(table);
-		setDialogOpen(true);
+
+		if (table.status === "OCCUPIED" && table.currentTabId) {
+			router.push(`/restaurant/${slug}/tabs/${table.currentTabId}`);
+		}
 	}
 
 	function handleDialogOpenChange(open: boolean) {
@@ -62,7 +77,9 @@ export function TableGridClient({ tables, canOpenTab }: TableGridClientProps) {
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
 				{tables.map((table) => {
 					const status = STATUS_CONFIG[table.status];
-					const isClickable = canOpenTab && table.status === "FREE";
+					const isClickable =
+						(canOpenTab && table.status === "FREE") ||
+						(table.status === "OCCUPIED" && table.currentTabId !== null);
 
 					return (
 						<Card
