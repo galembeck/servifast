@@ -6,6 +6,7 @@ import { getTab } from "@/api/http/services/get-tab";
 import { Button } from "@/components/ui/button";
 import { ability, getCurrentRestaurant } from "@/providers/auth-provider";
 import { AddTabItemSheet } from "./~components/add-tab-item-sheet";
+import { SendToKitchenButton } from "./~components/send-to-kitchen-button";
 import { TabItemsList } from "./~components/tab-items-list";
 
 export default async function TabPage({
@@ -27,6 +28,12 @@ export default async function TabPage({
 
 	const canAddItems =
 		!!permissions?.can("create", "Order") && tab.closedAt === null;
+	const canManageOrders =
+		!!permissions?.can("update", "Order") && tab.closedAt === null;
+
+	const pendingItemsCount = tab.items.filter(
+		(item) => item.status === "RECEIVED" && item.sentToKitchenAt === null
+	).length;
 
 	const { items: menuItems } = canAddItems
 		? await getMenuItems(currentRestaurant, { available: true })
@@ -49,18 +56,30 @@ export default async function TabPage({
 					)}
 				</div>
 
-				{canAddItems && (
-					<div className="ml-auto">
-						<AddTabItemSheet
-							items={tab.items}
-							menuItems={menuItems}
-							tabId={tabId}
-						/>
+				{(canAddItems || canManageOrders) && (
+					<div className="ml-auto flex items-center gap-2">
+						{canManageOrders && (
+							<SendToKitchenButton
+								pendingCount={pendingItemsCount}
+								tabId={tabId}
+							/>
+						)}
+						{canAddItems && (
+							<AddTabItemSheet
+								items={tab.items}
+								menuItems={menuItems}
+								tabId={tabId}
+							/>
+						)}
 					</div>
 				)}
 			</div>
 
-			<TabItemsList items={tab.items} />
+			<TabItemsList
+				canCancelItems={canManageOrders}
+				items={tab.items}
+				tabId={tabId}
+			/>
 		</div>
 	);
 }

@@ -1,6 +1,6 @@
 import { api } from "../api-client";
 
-export type OrderItemStatus = "RECEIVED";
+export type OrderItemStatus = "RECEIVED" | "CANCELLED";
 
 export interface TabItem {
 	createdAt: string;
@@ -12,6 +12,7 @@ export interface TabItem {
 	};
 	notes: string | null;
 	quantity: number;
+	sentToKitchenAt: string | null;
 	status: OrderItemStatus;
 	unitPriceInCents: number;
 }

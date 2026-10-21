@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Inter, Poppins } from "next/font/google";
+import { Toaster } from "sonner";
 import { cn } from "@/lib/utils";
 import { Providers } from "./providers";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
 		>
 			<body className="flex min-h-full flex-col">
 				<Providers>{children}</Providers>
+				<Toaster position="top-right" richColors />
 			</body>
 		</html>
 	);

@@ -105,6 +105,7 @@ model Restaurant {
   menuItems      MenuItem[]
   expenses       Expense[]
   orderItems     OrderItem[]
+  kdsEvents      KdsEvent[]
 
   @@map("restaurants")
 }
@@ -151,7 +152,8 @@ model Tab {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String     @map("restaurant_id")
 
-  items OrderItem[]
+  items     OrderItem[]
+  kdsEvents KdsEvent[]
 
   @@map("tabs")
 }
@@ -196,6 +198,7 @@ model MenuItem {
 
 enum OrderItemStatus {
   RECEIVED
+  CANCELLED
 
   @@map("order_item_status")
 }
@@ -206,6 +209,7 @@ model OrderItem {
   notes            String?
   status           OrderItemStatus @default(RECEIVED)
   unitPriceInCents Int             @map("unit_price_in_cents")
+  sentToKitchenAt  DateTime?       @map("sent_to_kitchen_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
@@ -220,6 +224,22 @@ model OrderItem {
   restaurantId String     @map("restaurant_id")
 
   @@map("order_items")
+}
+
+model KdsEvent {
+  id          String    @id @default(uuid())
+  sentAt      DateTime  @default(now()) @map("sent_at")
+  processedAt DateTime? @map("processed_at")
+  items       Json
+
+  tab          Tab        @relation(fields: [tabId], references: [id], onDelete: Cascade)
+  tabId        String     @map("tab_id")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  @@index([restaurantId, processedAt])
+  @@map("kds_events")
 }
 
 model Expense {
