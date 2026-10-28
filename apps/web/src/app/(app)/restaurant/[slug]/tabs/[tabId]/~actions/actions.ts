@@ -57,7 +57,7 @@ export async function addTabItemAction(data: FormData) {
 		};
 	}
 
-	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "layout");
+	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
 
 	return {
 		success: true,
@@ -91,7 +91,7 @@ export async function cancelTabItemAction(tabId: string, itemId: string) {
 		};
 	}
 
-	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "layout");
+	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
 
 	return {
 		success: true,
@@ -125,7 +125,7 @@ export async function sendToKitchenAction(tabId: string) {
 		};
 	}
 
-	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "layout");
+	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
 
 	return {
 		success: true,

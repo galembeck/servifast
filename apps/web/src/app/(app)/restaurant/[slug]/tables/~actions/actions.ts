@@ -104,7 +104,7 @@ export async function openTabAction(data: FormData) {
 			peopleCount,
 		});
 	} catch (error) {
-		revalidateTag(`${currentRestaurant}/tables`, "layout");
+		revalidateTag(`${currentRestaurant}/tables`, "max");
 
 		if (error instanceof HTTPError) {
 			const { title, description } = (await error.response.json()) as {
@@ -123,7 +123,7 @@ export async function openTabAction(data: FormData) {
 		};
 	}
 
-	revalidateTag(`${currentRestaurant}/tables`, "layout");
+	revalidateTag(`${currentRestaurant}/tables`, "max");
 
 	return {
 		success: true,
