@@ -155,6 +155,7 @@ model Tab {
   items     OrderItem[]
   kdsEvents KdsEvent[]
 
+  @@index([tableId, closedAt])
   @@map("tabs")
 }
 
@@ -223,6 +224,7 @@ model OrderItem {
   restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   restaurantId String     @map("restaurant_id")
 
+  @@index([tabId, createdAt])
   @@map("order_items")
 }
 

@@ -1,13 +1,11 @@
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
+import { HTTPError } from "ky";
 import { notFound } from "next/navigation";
 import { getMenuItems } from "@/api/http/services/get-menu-items";
 import { getTab } from "@/api/http/services/get-tab";
-import { Button } from "@/components/ui/button";
 import { ability, getCurrentRestaurant } from "@/providers/auth-provider";
-import { AddTabItemSheet } from "./~components/add-tab-item-sheet";
-import { SendToKitchenButton } from "./~components/send-to-kitchen-button";
-import { TabItemsList } from "./~components/tab-items-list";
+import { TabLiveView } from "./~components/tab-live-view";
+
+const HTTP_NOT_FOUND = 404;
 
 export default async function TabPage({
 	params,
@@ -20,69 +18,40 @@ export default async function TabPage({
 	// biome-ignore lint/style/noNonNullAssertion: always comes as string
 	const currentRestaurant = (await getCurrentRestaurant())!;
 
-	const tabResult = await getTab(currentRestaurant, tabId).catch(() => null);
+	const tabResult = await getTab(currentRestaurant, tabId).catch(
+		(error: unknown) => {
+			// Only a real 404 means the tab doesn't exist; any other failure is
+			// surfaced by the error boundary instead of a misleading "not found".
+			if (
+				error instanceof HTTPError &&
+				error.response.status === HTTP_NOT_FOUND
+			) {
+				return null;
+			}
+			throw error;
+		}
+	);
 	if (!tabResult) {
 		notFound();
 	}
 	const { tab } = tabResult;
 
-	const canAddItems =
-		!!permissions?.can("create", "Order") && tab.closedAt === null;
-	const canManageOrders =
-		!!permissions?.can("update", "Order") && tab.closedAt === null;
-	const canForceCancelItems =
-		!!permissions?.can("force_cancel", "Order") && tab.closedAt === null;
+	const canCreateOrders = !!permissions?.can("create", "Order");
 
-	const pendingItemsCount = tab.items.filter(
-		(item) => item.status === "RECEIVED" && item.sentToKitchenAt === null
-	).length;
-
-	const { items: menuItems } = canAddItems
-		? await getMenuItems(currentRestaurant, { available: true })
-		: { items: [] };
+	const { items: menuItems } =
+		canCreateOrders && tab.closedAt === null
+			? await getMenuItems(currentRestaurant, { available: true })
+			: { items: [] };
 
 	return (
-		<div className="space-y-6">
-			<div className="flex items-center gap-3">
-				<Button asChild size="icon-sm" variant="ghost">
-					<Link href={`/restaurant/${slug}/tables`}>
-						<ArrowLeft className="size-4" />
-						<span className="sr-only">Voltar</span>
-					</Link>
-				</Button>
-
-				<div>
-					<h1 className="font-semibold text-2xl">Comanda</h1>
-					{tab.customerName && (
-						<p className="text-muted-foreground text-sm">{tab.customerName}</p>
-					)}
-				</div>
-
-				{(canAddItems || canManageOrders) && (
-					<div className="ml-auto flex items-center gap-2">
-						{canManageOrders && (
-							<SendToKitchenButton
-								pendingCount={pendingItemsCount}
-								tabId={tabId}
-							/>
-						)}
-						{canAddItems && (
-							<AddTabItemSheet
-								items={tab.items}
-								menuItems={menuItems}
-								tabId={tabId}
-							/>
-						)}
-					</div>
-				)}
-			</div>
-
-			<TabItemsList
-				canCancelItems={canManageOrders}
-				canForceCancelItems={canForceCancelItems}
-				items={tab.items}
-				tabId={tabId}
-			/>
-		</div>
+		<TabLiveView
+			canCreateOrders={canCreateOrders}
+			canForceCancelOrders={!!permissions?.can("force_cancel", "Order")}
+			canUpdateOrders={!!permissions?.can("update", "Order")}
+			currentRestaurant={currentRestaurant}
+			menuItems={menuItems}
+			slug={slug}
+			tab={tab}
+		/>
 	);
 }

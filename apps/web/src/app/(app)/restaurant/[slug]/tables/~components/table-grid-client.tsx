@@ -3,7 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { TableStatus } from "@/api/http/services/get-tables";
+import { getTables } from "@/api/http/services/get-tables";
+import { LiveUpdateError } from "@/components/live-update-error";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useLiveQuery } from "@/hooks/use-live-query";
 import { OpenTabDialog } from "./open-tab-dialog";
 
 const STATUS_CONFIG: Record<
@@ -35,20 +38,57 @@ interface Table {
 	status: TableStatus;
 }
 
+function StatusLegend({ tables }: { tables: Table[] }) {
+	const counts: Record<TableStatus, number> = {
+		FREE: 0,
+		OCCUPIED: 0,
+		BILL_REQUESTED: 0,
+	};
+
+	for (const table of tables) {
+		counts[table.status] += 1;
+	}
+
+	return (
+		<div className="flex flex-wrap items-center gap-2">
+			{(Object.keys(STATUS_CONFIG) as TableStatus[]).map((status) => (
+				<div
+					className="flex items-center gap-2 rounded-full border px-3 py-1 text-sm"
+					key={status}
+				>
+					<span
+						className={`size-2 rounded-full ${STATUS_CONFIG[status].dot}`}
+					/>
+					{counts[status]} {STATUS_CONFIG[status].label.toLowerCase()}
+					{counts[status] === 1 ? "" : "s"}
+				</div>
+			))}
+		</div>
+	);
+}
+
 interface TableGridClientProps {
 	canOpenTab: boolean;
+	currentRestaurant: string;
 	slug: string;
 	tables: Table[];
 }
 
 export function TableGridClient({
-	tables,
+	tables: serverTables,
 	canOpenTab,
+	currentRestaurant,
 	slug,
 }: TableGridClientProps) {
 	const router = useRouter();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+
+	const { data: tables, isError } = useLiveQuery({
+		queryKey: ["restaurants", currentRestaurant, "tables"],
+		queryFn: async () => (await getTables(currentRestaurant)).tables,
+		serverData: serverTables,
+	});
 
 	function handleTableClick(table: Table) {
 		if (table.status === "FREE") {
@@ -72,8 +112,20 @@ export function TableGridClient({
 		}
 	}
 
+	if (tables.length === 0) {
+		return (
+			<p className="text-muted-foreground text-sm">
+				Nenhuma mesa cadastrada ainda.
+			</p>
+		);
+	}
+
 	return (
-		<>
+		<div className="space-y-4">
+			{isError && <LiveUpdateError />}
+
+			<StatusLegend tables={tables} />
+
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
 				{tables.map((table) => {
 					const status = STATUS_CONFIG[table.status];
@@ -136,6 +188,6 @@ export function TableGridClient({
 					tableNumber={selectedTable.number}
 				/>
 			)}
-		</>
+		</div>
 	);
 }

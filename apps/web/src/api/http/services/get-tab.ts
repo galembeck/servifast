@@ -29,6 +29,8 @@ interface GetTabResponse {
 	};
 }
 
+export type Tab = GetTabResponse["tab"];
+
 export async function getTab(slug: string, tabId: string) {
 	const result = await api
 		.get(`restaurants/${slug}/tabs/${tabId}`, {
