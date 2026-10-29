@@ -21,6 +21,7 @@ import { getPendingInvitesRoute } from "@/http/routes/invites/get-pending-invite
 import { registerFromInviteRoute } from "@/http/routes/invites/register-from-invite";
 import { rejectInviteRoute } from "@/http/routes/invites/reject-invite";
 import { revokeInviteRoute } from "@/http/routes/invites/revoke-invite";
+import { getKdsItemsRoute } from "@/http/routes/kds/get-kds-items";
 import { getMembersRoute } from "@/http/routes/members/get-members";
 import { removeMemberRoute } from "@/http/routes/members/remove-member";
 import { updateMemberRoute } from "@/http/routes/members/update-member";
@@ -87,6 +88,7 @@ export async function buildApp() {
 	await app.register(getTablesRoute);
 	await app.register(openTabRoute);
 	await app.register(getTabRoute);
+	await app.register(getKdsItemsRoute);
 	await app.register(addTabItemRoute);
 	await app.register(cancelTabItemRoute);
 	await app.register(sendToKitchenRoute);

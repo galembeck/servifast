@@ -225,6 +225,8 @@ model OrderItem {
   restaurantId String     @map("restaurant_id")
 
   @@index([tabId, createdAt])
+  @@index([restaurantId, sentToKitchenAt, status])
+  @@index([updatedAt])
   @@map("order_items")
 }
 

@@ -6,6 +6,7 @@ import { ConflictError } from "./routes/_errors/conflict-error";
 import { ForbiddenError } from "./routes/_errors/forbidden-error";
 import { NotFoundError } from "./routes/_errors/not-found-error";
 import { UnauthorizedError } from "./routes/_errors/unauthorized-error";
+import { UnprocessableEntityError } from "./routes/_errors/unprocessable-entity-error";
 
 type FastifyErrorHandler = FastifyInstance["errorHandler"];
 
@@ -64,6 +65,15 @@ export const errorHandler: FastifyErrorHandler = (error, request, reply) => {
 	if (error instanceof ConflictError) {
 		return reply.status(409).send({
 			statusCode: 409,
+			title: error.title,
+			message: error.code,
+			description: error.description,
+		});
+	}
+
+	if (error instanceof UnprocessableEntityError) {
+		return reply.status(422).send({
+			statusCode: 422,
 			title: error.title,
 			message: error.code,
 			description: error.description,

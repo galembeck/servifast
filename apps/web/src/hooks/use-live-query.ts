@@ -1,9 +1,21 @@
 "use client";
 
 import { type QueryKey, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export const LIVE_QUERY_INTERVAL_IN_MS = 5000;
+export const LIVE_QUERY_MAX_INTERVAL_IN_MS = 60_000;
+
+/**
+ * Exponential backoff: 5s normally, then 10s, 20s, 40s… capped at 60s while
+ * polls keep failing.
+ */
+export function getLiveQueryInterval(consecutiveErrors: number) {
+	return Math.min(
+		LIVE_QUERY_INTERVAL_IN_MS * 2 ** consecutiveErrors,
+		LIVE_QUERY_MAX_INTERVAL_IN_MS
+	);
+}
 
 interface UseLiveQueryOptions<T> {
 	enabled?: boolean;
@@ -14,13 +26,17 @@ interface UseLiveQueryOptions<T> {
 
 /**
  * Polls data for screens that must reflect changes made by other staff
- * (floor/tables, tabs) without a manual reload.
+ * (floor/tables, tabs, KDS) without a manual reload.
  *
- * - Starts from the data rendered by the Server Component.
- * - Re-syncs whenever the server re-renders (e.g. after a Server Action).
- * - Pauses while the browser tab is hidden.
- * - On a failed poll, keeps the last known data on screen (`isError` with
- *   `data` still set) and keeps retrying on the next interval.
+ * - Starts from the data rendered by the Server Component and re-syncs
+ *   whenever the server re-renders (e.g. after a Server Action).
+ * - No overlapping requests: TanStack Query doesn't start an interval refetch
+ *   while the previous fetch for the same key is still in flight.
+ * - Pauses while the browser tab is hidden (`refetchIntervalInBackground`).
+ * - Cleans up on unmount: the query observer clears its interval when the
+ *   component unmounts — no manual timers here.
+ * - Backs off on errors (see `getLiveQueryInterval`) and returns to the normal
+ *   interval after the next success, keeping the last known data on screen.
  */
 export function useLiveQuery<T>({
 	enabled = true,
@@ -30,6 +46,7 @@ export function useLiveQuery<T>({
 }: UseLiveQueryOptions<T>) {
 	const queryClient = useQueryClient();
 	const serializedKey = JSON.stringify(queryKey);
+	const consecutiveErrors = useRef(0);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: queryKey is tracked through serializedKey
 	useEffect(() => {
@@ -38,15 +55,29 @@ export function useLiveQuery<T>({
 
 	const query = useQuery({
 		queryKey,
-		queryFn,
+		queryFn: async () => {
+			try {
+				const data = await queryFn();
+				consecutiveErrors.current = 0;
+				return data;
+			} catch (error) {
+				consecutiveErrors.current += 1;
+				throw error;
+			}
+		},
 		initialData: serverData,
 		enabled,
 		staleTime: LIVE_QUERY_INTERVAL_IN_MS,
-		refetchInterval: enabled ? LIVE_QUERY_INTERVAL_IN_MS : false,
+		refetchInterval: enabled
+			? () => getLiveQueryInterval(consecutiveErrors.current)
+			: false,
 		refetchIntervalInBackground: false,
 		refetchOnWindowFocus: true,
 		retry: false,
 	});
 
-	return { data: query.data ?? serverData, isError: query.isError };
+	return {
+		data: query.data ?? serverData,
+		isOffline: query.isError,
+	};
 }

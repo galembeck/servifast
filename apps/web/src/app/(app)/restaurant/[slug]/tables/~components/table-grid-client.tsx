@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { TableStatus } from "@/api/http/services/get-tables";
 import { getTables } from "@/api/http/services/get-tables";
-import { LiveUpdateError } from "@/components/live-update-error";
+import { OfflineIndicator } from "@/components/offline-indicator";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useLiveQuery } from "@/hooks/use-live-query";
 import { OpenTabDialog } from "./open-tab-dialog";
@@ -84,7 +84,7 @@ export function TableGridClient({
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [selectedTable, setSelectedTable] = useState<Table | null>(null);
 
-	const { data: tables, isError } = useLiveQuery({
+	const { data: tables, isOffline } = useLiveQuery({
 		queryKey: ["restaurants", currentRestaurant, "tables"],
 		queryFn: async () => (await getTables(currentRestaurant)).tables,
 		serverData: serverTables,
@@ -122,9 +122,10 @@ export function TableGridClient({
 
 	return (
 		<div className="space-y-4">
-			{isError && <LiveUpdateError />}
-
-			<StatusLegend tables={tables} />
+			<div className="flex flex-wrap items-center justify-between gap-2">
+				<StatusLegend tables={tables} />
+				{isOffline && <OfflineIndicator />}
+			</div>
 
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
 				{tables.map((table) => {

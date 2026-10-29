@@ -4,7 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { ComponentProps } from "react";
 import { getTab, type Tab } from "@/api/http/services/get-tab";
-import { LiveUpdateError } from "@/components/live-update-error";
+import { OfflineIndicator } from "@/components/offline-indicator";
 import { Button } from "@/components/ui/button";
 import { useLiveQuery } from "@/hooks/use-live-query";
 import { AddTabItemSheet } from "./add-tab-item-sheet";
@@ -30,7 +30,7 @@ export function TabLiveView({
 	slug,
 	tab: serverTab,
 }: TabLiveViewProps) {
-	const { data: tab, isError } = useLiveQuery({
+	const { data: tab, isOffline } = useLiveQuery({
 		queryKey: ["restaurants", currentRestaurant, "tabs", serverTab.id],
 		queryFn: async () => (await getTab(currentRestaurant, serverTab.id)).tab,
 		serverData: serverTab,
@@ -82,7 +82,7 @@ export function TabLiveView({
 				)}
 			</div>
 
-			{isError && <LiveUpdateError />}
+			{isOffline && <OfflineIndicator />}
 
 			<TabItemsList
 				canCancelItems={canManageOrders}
