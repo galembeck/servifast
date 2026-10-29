@@ -259,9 +259,89 @@ describe("GET /restaurants/:slug/kds/items", () => {
 		).toEqual([changedAfter.id]);
 		expect(prismaMock.orderItem.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
-				where: expect.objectContaining({ updatedAt: { gt: since } }),
+				where: {
+					restaurantId: restaurant.id,
+					status: { in: ["RECEIVED", "CANCELLED"] },
+					sentToKitchenAt: { not: null },
+					updatedAt: { gt: since },
+				},
 			})
 		);
+	});
+
+	it("com since, inclui itens enviados que foram cancelados depois dele (para o KDS remover)", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "KITCHEN");
+		const token = signToken(app, userId);
+
+		const since = minutesAgo(5);
+		const cancelledAfterSince = makeItem(restaurant.id, {
+			status: "CANCELLED",
+			sentToKitchenAt: minutesAgo(20),
+			updatedAt: minutesAgo(1),
+		});
+		const cancelledBeforeSince = makeItem(restaurant.id, {
+			status: "CANCELLED",
+			updatedAt: minutesAgo(8),
+		});
+		const cancelledNeverSent = makeItem(restaurant.id, {
+			status: "CANCELLED",
+			sentToKitchenAt: null,
+			updatedAt: minutesAgo(1),
+		});
+		const newItem = makeItem(restaurant.id, {
+			sentToKitchenAt: minutesAgo(2),
+			updatedAt: minutesAgo(2),
+		});
+
+		useInMemoryOrderItems([
+			newItem,
+			cancelledBeforeSince,
+			cancelledNeverSent,
+			cancelledAfterSince,
+		]);
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/restaurants/${restaurant.slug}/kds/items`,
+			query: { since: since.toISOString() },
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(
+			JSON.parse(response.body).items.map(
+				(item: { id: string; status: string }) => [item.id, item.status]
+			)
+		).toEqual([
+			[cancelledAfterSince.id, "CANCELLED"],
+			[newItem.id, "RECEIVED"],
+		]);
+	});
+
+	it("sem since (leitura completa), nunca retorna itens cancelados", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "KITCHEN");
+		const token = signToken(app, userId);
+
+		const active = makeItem(restaurant.id);
+		const cancelledRecently = makeItem(restaurant.id, {
+			status: "CANCELLED",
+			updatedAt: minutesAgo(1),
+		});
+
+		useInMemoryOrderItems([active, cancelledRecently]);
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/restaurants/${restaurant.slug}/kds/items`,
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(
+			JSON.parse(response.body).items.map((item: { id: string }) => item.id)
+		).toEqual([active.id]);
 	});
 
 	it("serverTime é capturado antes da consulta (pode ser usado como próximo since)", async () => {

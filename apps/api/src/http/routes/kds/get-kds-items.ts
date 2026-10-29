@@ -20,6 +20,14 @@ import { UnprocessableEntityError } from "../_errors/unprocessable-entity-error"
  */
 const KDS_ACTIVE_STATUSES = ["RECEIVED"] as const;
 
+/**
+ * Statuses that remove an item from the kitchen queue. Only returned on
+ * incremental (`since`) reads so the KDS knows to drop items it already shows.
+ */
+const KDS_REMOVED_STATUSES = ["CANCELLED"] as const;
+
+const KDS_STATUSES = [...KDS_ACTIVE_STATUSES, ...KDS_REMOVED_STATUSES] as const;
+
 const sinceSchema = z.iso.datetime({ offset: true });
 
 export async function getKdsItemsRoute(app: FastifyInstance) {
@@ -33,7 +41,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 					tags: ["KDS"],
 					summary: "/restaurants/:slug/kds/items",
 					description:
-						"Read-only kitchen queue: items sent to the kitchen and not finished yet, oldest first. Pass `since` (ISO 8601) to get only items updated after it; use the returned `serverTime` as the next `since`.",
+						"Read-only kitchen queue: items sent to the kitchen and not finished yet, oldest first. Pass `since` (ISO 8601) to get only items updated after it — this incremental read also includes items CANCELLED after `since` so the KDS can remove them. Use the returned `serverTime` as the next `since`.",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -56,7 +64,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 									}),
 									tabId: z.uuid(),
 									sentToKitchenAt: z.date(),
-									status: z.enum(KDS_ACTIVE_STATUSES),
+									status: z.enum(KDS_STATUSES),
 								})
 							),
 							serverTime: z.date(),
@@ -121,7 +129,9 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 				const rows = await prisma.orderItem.findMany({
 					where: {
 						restaurantId: restaurant.id,
-						status: { in: [...KDS_ACTIVE_STATUSES] },
+						status: {
+							in: since ? [...KDS_STATUSES] : [...KDS_ACTIVE_STATUSES],
+						},
 						sentToKitchenAt: { not: null },
 						...(since && { updatedAt: { gt: since } }),
 					},
@@ -153,7 +163,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 					tabId: row.tabId,
 					// Guaranteed by the `sentToKitchenAt: { not: null }` filter.
 					sentToKitchenAt: row.sentToKitchenAt as Date,
-					status: row.status as (typeof KDS_ACTIVE_STATUSES)[number],
+					status: row.status,
 				}));
 
 				return { items, serverTime };
