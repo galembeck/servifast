@@ -4,6 +4,7 @@ import { getUserPermissions } from "@repo/rbac/src/utils/get-user-permissions";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
+import type { MenuItem, OrderItem } from "@/generated/prisma/client.js";
 import { AuthException } from "@/http/_errors/exceptions/auth";
 import { TabException } from "@/http/_errors/exceptions/tab";
 import { auth } from "@/http/middlewares/auth";
@@ -11,6 +12,10 @@ import { prisma } from "@/lib/prisma";
 import { ConflictError } from "../_errors/conflict-error";
 import { ForbiddenError } from "../_errors/forbidden-error";
 import { NotFoundError } from "../_errors/not-found-error";
+
+type PendingOrderItem = OrderItem & {
+	menuItem: Pick<MenuItem, "id" | "name">;
+};
 
 export async function sendToKitchenRoute(app: FastifyInstance) {
 	app
@@ -90,15 +95,16 @@ export async function sendToKitchenRoute(app: FastifyInstance) {
 				const { event, sentItems } = await prisma.$transaction(
 					// biome-ignore lint/suspicious/noExplicitAny: tx type requires generated Prisma client (run db:generate)
 					async (tx: any) => {
-						const pendingItems = await tx.orderItem.findMany({
-							where: {
-								tabId,
-								restaurantId: restaurant.id,
-								status: "RECEIVED",
-								sentToKitchenAt: null,
-							},
-							include: { menuItem: { select: { id: true, name: true } } },
-						});
+						const pendingItems: PendingOrderItem[] =
+							await tx.orderItem.findMany({
+								where: {
+									tabId,
+									restaurantId: restaurant.id,
+									status: "RECEIVED",
+									sentToKitchenAt: null,
+								},
+								include: { menuItem: { select: { id: true, name: true } } },
+							});
 
 						if (pendingItems.length === 0) {
 							throw new ConflictError(

@@ -30,7 +30,7 @@ export function SendToKitchenButton({
 
 	const label =
 		pendingCount > 0
-			? `Enviar ${pendingCount} ${pendingCount === 1 ? "item" : "itens"}`
+			? `Confirmar e enviar pedido (${pendingCount})`
 			: "Nenhum item pendente";
 
 	return (
