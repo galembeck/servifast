@@ -30,6 +30,35 @@ const KDS_STATUSES = [...KDS_ACTIVE_STATUSES, ...KDS_REMOVED_STATUSES] as const;
 
 const sinceSchema = z.iso.datetime({ offset: true });
 
+/**
+ * Full read: the current queue — active items of open tabs.
+ *
+ * Incremental read (`since`): everything the KDS must apply since its last
+ * poll — items added/updated or cancelled after `since`, plus items whose tab
+ * was closed after `since`. Closing a tab doesn't touch its items'
+ * `updatedAt`, hence the separate `tab.closedAt` branch.
+ */
+function buildKdsWhere(restaurantId: string, since: Date | undefined) {
+	const sentToKitchen = {
+		restaurantId,
+		sentToKitchenAt: { not: null },
+	};
+
+	if (!since) {
+		return {
+			...sentToKitchen,
+			status: { in: [...KDS_ACTIVE_STATUSES] },
+			tab: { closedAt: null },
+		};
+	}
+
+	return {
+		...sentToKitchen,
+		status: { in: [...KDS_STATUSES] },
+		OR: [{ updatedAt: { gt: since } }, { tab: { closedAt: { gt: since } } }],
+	};
+}
+
 export async function getKdsItemsRoute(app: FastifyInstance) {
 	app
 		.withTypeProvider<ZodTypeProvider>()
@@ -41,7 +70,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 					tags: ["KDS"],
 					summary: "/restaurants/:slug/kds/items",
 					description:
-						"Read-only kitchen queue: items sent to the kitchen and not finished yet, oldest first. Pass `since` (ISO 8601) to get only items updated after it — this incremental read also includes items CANCELLED after `since` so the KDS can remove them. Use the returned `serverTime` as the next `since`.",
+						"Read-only kitchen queue: items sent to the kitchen and not finished yet (open tabs only), oldest first. Pass `since` (ISO 8601) to get only changes after it — this incremental read also returns items CANCELLED after `since` and items whose tab was closed after `since` (`tabClosedAt` set), so the KDS can remove them. Use the returned `serverTime` as the next `since`.",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -63,6 +92,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 										positionReference: z.string().nullable(),
 									}),
 									tabId: z.uuid(),
+									tabClosedAt: z.date().nullable(),
 									sentToKitchenAt: z.date(),
 									status: z.enum(KDS_STATUSES),
 								})
@@ -127,14 +157,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 				const serverTime = new Date();
 
 				const rows = await prisma.orderItem.findMany({
-					where: {
-						restaurantId: restaurant.id,
-						status: {
-							in: since ? [...KDS_STATUSES] : [...KDS_ACTIVE_STATUSES],
-						},
-						sentToKitchenAt: { not: null },
-						...(since && { updatedAt: { gt: since } }),
-					},
+					where: buildKdsWhere(restaurant.id, since),
 					orderBy: [{ sentToKitchenAt: "asc" }, { createdAt: "asc" }],
 					select: {
 						id: true,
@@ -147,6 +170,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 						menuItem: { select: { name: true } },
 						tab: {
 							select: {
+								closedAt: true,
 								table: { select: { number: true, positionReference: true } },
 							},
 						},
@@ -161,6 +185,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 					notes: row.notes,
 					table: row.tab.table,
 					tabId: row.tabId,
+					tabClosedAt: row.tab.closedAt,
 					// Guaranteed by the `sentToKitchenAt: { not: null }` filter.
 					sentToKitchenAt: row.sentToKitchenAt as Date,
 					status: row.status,

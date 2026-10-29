@@ -30,7 +30,10 @@ interface FakeOrderItem {
 	restaurantId: string;
 	sentToKitchenAt: Date | null;
 	status: "RECEIVED" | "CANCELLED";
-	tab: { table: { number: number; positionReference: string | null } };
+	tab: {
+		closedAt: Date | null;
+		table: { number: number; positionReference: string | null };
+	};
 	tabId: string;
 	updatedAt: Date;
 }
@@ -55,19 +58,42 @@ function makeItem(
 		createdAt: minutesAgo(15),
 		updatedAt: minutesAgo(10),
 		tabId: faker.string.uuid(),
-		tab: { table: { number: 1, positionReference: "Salão" } },
+		tab: { closedAt: null, table: { number: 1, positionReference: "Salão" } },
 		...overrides,
 	};
 }
 
+interface FakeWhere {
+	OR?: FakeWhere[];
+	restaurantId?: string;
+	sentToKitchenAt?: { not: null };
+	status?: { in: string[] };
+	tab?: { closedAt: null | { gt: Date } };
+	updatedAt?: { gt: Date };
+}
+
 interface FindManyArgs {
 	orderBy: Record<string, "asc" | "desc">[];
-	where: {
-		restaurantId: string;
-		sentToKitchenAt: { not: null };
-		status: { in: string[] };
-		updatedAt?: { gt: Date };
-	};
+	where: FakeWhere;
+}
+
+/** Evaluates the subset of Prisma `where` the KDS route uses. */
+function matches(row: FakeOrderItem, where: FakeWhere): boolean {
+	const tabClosedAt = where.tab?.closedAt;
+	const checks = [
+		where.restaurantId === undefined || row.restaurantId === where.restaurantId,
+		where.sentToKitchenAt === undefined || row.sentToKitchenAt !== null,
+		where.status === undefined || where.status.in.includes(row.status),
+		where.updatedAt === undefined || row.updatedAt > where.updatedAt.gt,
+		where.tab === undefined ||
+			(tabClosedAt === null
+				? row.tab.closedAt === null
+				: row.tab.closedAt !== null &&
+					tabClosedAt !== undefined &&
+					row.tab.closedAt > tabClosedAt.gt),
+		where.OR === undefined || where.OR.some((clause) => matches(row, clause)),
+	];
+	return checks.every(Boolean);
 }
 
 /**
@@ -78,13 +104,7 @@ interface FindManyArgs {
 function useInMemoryOrderItems(rows: FakeOrderItem[]) {
 	prismaMock.orderItem.findMany.mockImplementation(
 		({ where, orderBy }: FindManyArgs) => {
-			const filtered = rows.filter(
-				(row) =>
-					row.restaurantId === where.restaurantId &&
-					where.status.in.includes(row.status) &&
-					row.sentToKitchenAt !== null &&
-					(!where.updatedAt || row.updatedAt > where.updatedAt.gt)
-			);
+			const filtered = rows.filter((row) => matches(row, where));
 
 			return Promise.resolve(
 				filtered.sort((a, b) => {
@@ -150,7 +170,10 @@ describe("GET /restaurants/:slug/kds/items", () => {
 			sentToKitchenAt: minutesAgo(30),
 			quantity: 2,
 			notes: "Sem cebola",
-			tab: { table: { number: 7, positionReference: "Varanda" } },
+			tab: {
+				closedAt: null,
+				table: { number: 7, positionReference: "Varanda" },
+			},
 		});
 		const newest = makeItem(restaurant.id, { sentToKitchenAt: minutesAgo(2) });
 		const middle = makeItem(restaurant.id, { sentToKitchenAt: minutesAgo(10) });
@@ -189,6 +212,7 @@ describe("GET /restaurants/:slug/kds/items", () => {
 			notes: "Sem cebola",
 			table: { number: 7, positionReference: "Varanda" },
 			tabId: oldest.tabId,
+			tabClosedAt: null,
 			sentToKitchenAt: oldest.sentToKitchenAt?.toISOString(),
 			status: "RECEIVED",
 		});
@@ -212,6 +236,7 @@ describe("GET /restaurants/:slug/kds/items", () => {
 				restaurantId: restaurant.id,
 				status: { in: ["RECEIVED"] },
 				sentToKitchenAt: { not: null },
+				tab: { closedAt: null },
 			},
 			orderBy: [{ sentToKitchenAt: "asc" }, { createdAt: "asc" }],
 			select: {
@@ -225,6 +250,7 @@ describe("GET /restaurants/:slug/kds/items", () => {
 				menuItem: { select: { name: true } },
 				tab: {
 					select: {
+						closedAt: true,
 						table: { select: { number: true, positionReference: true } },
 					},
 				},
@@ -263,7 +289,10 @@ describe("GET /restaurants/:slug/kds/items", () => {
 					restaurantId: restaurant.id,
 					status: { in: ["RECEIVED", "CANCELLED"] },
 					sentToKitchenAt: { not: null },
-					updatedAt: { gt: since },
+					OR: [
+						{ updatedAt: { gt: since } },
+						{ tab: { closedAt: { gt: since } } },
+					],
 				},
 			})
 		);
@@ -316,6 +345,82 @@ describe("GET /restaurants/:slug/kds/items", () => {
 		).toEqual([
 			[cancelledAfterSince.id, "CANCELLED"],
 			[newItem.id, "RECEIVED"],
+		]);
+	});
+
+	it("sem since (leitura completa), não retorna itens de comandas fechadas", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "KITCHEN");
+		const token = signToken(app, userId);
+
+		const openTabItem = makeItem(restaurant.id);
+		const closedTabItem = makeItem(restaurant.id, {
+			tab: {
+				closedAt: minutesAgo(30),
+				table: { number: 4, positionReference: null },
+			},
+		});
+
+		useInMemoryOrderItems([openTabItem, closedTabItem]);
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/restaurants/${restaurant.slug}/kds/items`,
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(
+			JSON.parse(response.body).items.map((item: { id: string }) => item.id)
+		).toEqual([openTabItem.id]);
+	});
+
+	it("com since, retorna itens de comandas fechadas depois dele com tabClosedAt (para o KDS remover)", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "KITCHEN");
+		const token = signToken(app, userId);
+
+		const since = minutesAgo(5);
+		const tabClosedAt = minutesAgo(2);
+		// Item untouched since before `since`; only its tab was closed after it.
+		const closedAfterSince = makeItem(restaurant.id, {
+			updatedAt: minutesAgo(40),
+			tab: {
+				closedAt: tabClosedAt,
+				table: { number: 4, positionReference: null },
+			},
+		});
+		const closedBeforeSince = makeItem(restaurant.id, {
+			updatedAt: minutesAgo(40),
+			tab: {
+				closedAt: minutesAgo(10),
+				table: { number: 5, positionReference: null },
+			},
+		});
+		const untouchedOpenTabItem = makeItem(restaurant.id, {
+			updatedAt: minutesAgo(40),
+		});
+
+		useInMemoryOrderItems([
+			closedAfterSince,
+			closedBeforeSince,
+			untouchedOpenTabItem,
+		]);
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/restaurants/${restaurant.slug}/kds/items`,
+			query: { since: since.toISOString() },
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(JSON.parse(response.body).items).toEqual([
+			expect.objectContaining({
+				id: closedAfterSince.id,
+				status: "RECEIVED",
+				tabClosedAt: tabClosedAt.toISOString(),
+			}),
 		]);
 	});
 
