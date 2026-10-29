@@ -382,7 +382,7 @@ describe("PATCH /restaurants/:slug/tabs/:tabId/items/:itemId/cancel", () => {
 		expect(response.statusCode).toBe(500);
 	});
 
-	it("item já enviado para cozinha ainda pode ser cancelado enquanto RECEIVED (compatibilidade SNEXS-33)", async () => {
+	it("retorna 409 ORDER_ITEM_ALREADY_SENT_TO_KITCHEN quando item já foi enviado para a cozinha", async () => {
 		const userId = faker.string.uuid();
 		const { restaurant } = mockMembership(userId, "WAITER");
 		const tabId = faker.string.uuid();
@@ -397,15 +397,52 @@ describe("PATCH /restaurants/:slug/tabs/:tabId/items/:itemId/cancel", () => {
 			null,
 			new Date()
 		);
-		const cancelledItem = makeCancelledItem(restaurant.id, tabId, itemId);
 
 		prismaMock.orderItem.findUnique.mockResolvedValue(sentItem);
+
+		const response = await app.inject({
+			method: "PATCH",
+			url: `/restaurants/${restaurant.slug}/tabs/${tabId}/items/${itemId}/cancel`,
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(409);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "ORDER_ITEM_ALREADY_SENT_TO_KITCHEN",
+		});
+	});
+
+	it.each([
+		"OWNER",
+		"MANAGER",
+	] as const)("%s força o cancelamento de item já enviado para a cozinha", async (role) => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, role);
+		const tabId = faker.string.uuid();
+		const itemId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.orderItem.findUnique.mockResolvedValue(
+			makeOrderItemWithTab(
+				restaurant.id,
+				tabId,
+				itemId,
+				"RECEIVED",
+				null,
+				new Date()
+			)
+		);
+		const updateMany = vi.fn().mockResolvedValue({ count: 1 });
 		prismaMock.$transaction.mockImplementation((fn: unknown) => {
 			if (typeof fn === "function") {
 				const tx = {
 					orderItem: {
-						updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-						findUnique: vi.fn().mockResolvedValue(cancelledItem),
+						updateMany,
+						findUnique: vi
+							.fn()
+							.mockResolvedValue(
+								makeCancelledItem(restaurant.id, tabId, itemId)
+							),
 					},
 				};
 				return fn(tx);
@@ -417,11 +454,82 @@ describe("PATCH /restaurants/:slug/tabs/:tabId/items/:itemId/cancel", () => {
 			method: "PATCH",
 			url: `/restaurants/${restaurant.slug}/tabs/${tabId}/items/${itemId}/cancel`,
 			headers: { Authorization: `Bearer ${token}` },
+			payload: { force: true },
 		});
 
 		expect(response.statusCode).toBe(200);
 		expect(JSON.parse(response.body)).toMatchObject({
 			item: { status: "CANCELLED" },
+			forced: true,
+		});
+		expect(updateMany).toHaveBeenCalledWith({
+			where: { id: itemId, status: "RECEIVED" },
+			data: { status: "CANCELLED" },
+		});
+	});
+
+	it.each([
+		"WAITER",
+		"CASHIER",
+		"KITCHEN",
+	] as const)("retorna 403 FORBIDDEN quando %s tenta forçar cancelamento", async (role) => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, role);
+		const tabId = faker.string.uuid();
+		const itemId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.orderItem.findUnique.mockResolvedValue(
+			makeOrderItemWithTab(
+				restaurant.id,
+				tabId,
+				itemId,
+				"RECEIVED",
+				null,
+				new Date()
+			)
+		);
+
+		const response = await app.inject({
+			method: "PATCH",
+			url: `/restaurants/${restaurant.slug}/tabs/${tabId}/items/${itemId}/cancel`,
+			headers: { Authorization: `Bearer ${token}` },
+			payload: { force: true },
+		});
+
+		expect(response.statusCode).toBe(403);
+		expect(JSON.parse(response.body)).toMatchObject({ message: "FORBIDDEN" });
+		expect(prismaMock.$transaction).not.toHaveBeenCalled();
+	});
+
+	it("cancelamento normal não pode ser concluído se o item for enviado à cozinha no meio do caminho", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "WAITER");
+		const tabId = faker.string.uuid();
+		const itemId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.orderItem.findUnique.mockResolvedValue(
+			makeOrderItemWithTab(restaurant.id, tabId, itemId)
+		);
+		const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+		prismaMock.$transaction.mockImplementation((fn: unknown) => {
+			if (typeof fn === "function") {
+				return fn({ orderItem: { updateMany, findUnique: vi.fn() } });
+			}
+			return fn;
+		});
+
+		const response = await app.inject({
+			method: "PATCH",
+			url: `/restaurants/${restaurant.slug}/tabs/${tabId}/items/${itemId}/cancel`,
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(409);
+		expect(updateMany).toHaveBeenCalledWith({
+			where: { id: itemId, status: "RECEIVED", sentToKitchenAt: null },
+			data: { status: "CANCELLED" },
 		});
 	});
 });

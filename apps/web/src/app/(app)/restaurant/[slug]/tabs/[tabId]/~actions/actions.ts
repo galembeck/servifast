@@ -67,12 +67,21 @@ export async function addTabItemAction(data: FormData) {
 	};
 }
 
-export async function cancelTabItemAction(tabId: string, itemId: string) {
+export async function cancelTabItemAction(
+	tabId: string,
+	itemId: string,
+	force = false
+) {
 	// biome-ignore lint/style/noNonNullAssertion: always comes as string
 	const currentRestaurant = (await getCurrentRestaurant())!;
 
 	try {
-		await cancelTabItem({ restaurant: currentRestaurant, tabId, itemId });
+		await cancelTabItem({
+			restaurant: currentRestaurant,
+			tabId,
+			itemId,
+			force,
+		});
 	} catch (error) {
 		if (error instanceof HTTPError) {
 			const { title, description } = (await error.response.json()) as {
@@ -95,7 +104,7 @@ export async function cancelTabItemAction(tabId: string, itemId: string) {
 
 	return {
 		success: true,
-		title: "Item cancelado.",
+		title: force ? "Cancelamento forçado concluído." : "Item cancelado.",
 		description: null,
 		errors: null,
 	};

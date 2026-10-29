@@ -30,6 +30,8 @@ export default async function TabPage({
 		!!permissions?.can("create", "Order") && tab.closedAt === null;
 	const canManageOrders =
 		!!permissions?.can("update", "Order") && tab.closedAt === null;
+	const canForceCancelItems =
+		!!permissions?.can("force_cancel", "Order") && tab.closedAt === null;
 
 	const pendingItemsCount = tab.items.filter(
 		(item) => item.status === "RECEIVED" && item.sentToKitchenAt === null
@@ -77,6 +79,7 @@ export default async function TabPage({
 
 			<TabItemsList
 				canCancelItems={canManageOrders}
+				canForceCancelItems={canForceCancelItems}
 				items={tab.items}
 				tabId={tabId}
 			/>

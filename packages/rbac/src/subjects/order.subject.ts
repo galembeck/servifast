@@ -6,6 +6,7 @@ export const orderSubject = z.tuple([
 		z.literal("get"),
 		z.literal("create"),
 		z.literal("update"),
+		z.literal("force_cancel"),
 	]),
 	z.literal("Order"),
 ]);

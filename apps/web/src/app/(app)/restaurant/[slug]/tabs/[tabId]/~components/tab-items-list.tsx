@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Loader2, X } from "lucide-react";
+import { CheckCircle2, Loader2, OctagonX, X } from "lucide-react";
 import { useState, useTransition } from "react";
 import type { TabItem } from "@/api/http/services/get-tab";
 import { Badge } from "@/components/ui/badge";
@@ -40,33 +40,47 @@ function formatPrice(priceInCents: number) {
 
 interface TabItemsListProps {
 	canCancelItems: boolean;
+	canForceCancelItems: boolean;
 	items: TabItem[];
 	tabId: string;
 }
 
+interface CancelingItem {
+	force: boolean;
+	id: string;
+}
+
 export function TabItemsList({
 	canCancelItems,
+	canForceCancelItems,
 	items,
 	tabId,
 }: TabItemsListProps) {
-	const [cancelingItemId, setCancelingItemId] = useState<string | null>(null);
+	const [cancelingItem, setCancelingItem] = useState<CancelingItem | null>(
+		null
+	);
 	const [errorMessage, setErrorMessage] = useState<string | null>(null);
 	const [isPending, startTransition] = useTransition();
 
-	function openCancelDialog(itemId: string) {
-		setCancelingItemId(itemId);
+	const isForcedCancellation = cancelingItem?.force ?? false;
+	const confirmLabel = isForcedCancellation
+		? "Forçar cancelamento"
+		: "Confirmar cancelamento";
+
+	function openCancelDialog(id: string, force: boolean) {
+		setCancelingItem({ id, force });
 		setErrorMessage(null);
 	}
 
 	function handleConfirmCancel() {
-		if (!cancelingItemId) {
+		if (!cancelingItem) {
 			return;
 		}
-		const itemId = cancelingItemId;
+		const { id, force } = cancelingItem;
 		startTransition(async () => {
-			const result = await cancelTabItemAction(tabId, itemId);
+			const result = await cancelTabItemAction(tabId, id, force);
 			if (result.success) {
-				setCancelingItemId(null);
+				setCancelingItem(null);
 			} else {
 				setErrorMessage(result.title ?? "Erro ao cancelar o item.");
 			}
@@ -86,6 +100,7 @@ export function TabItemsList({
 			<div className="space-y-2">
 				{items.map((item) => {
 					const isCancelled = item.status === "CANCELLED";
+					const isSentToKitchen = item.sentToKitchenAt !== null;
 					return (
 						<Card key={item.id}>
 							<CardContent
@@ -111,7 +126,7 @@ export function TabItemsList({
 										{item.quantity}× {formatPrice(item.unitPriceInCents)}
 									</p>
 									<div className="flex items-center gap-2">
-										{item.sentToKitchenAt !== null && !isCancelled && (
+										{isSentToKitchen && !isCancelled && (
 											<span className="flex items-center gap-1 text-green-600 text-xs dark:text-green-400">
 												<CheckCircle2 className="size-3" />
 												Na cozinha
@@ -120,15 +135,28 @@ export function TabItemsList({
 										<Badge variant={STATUS_VARIANT[item.status]}>
 											{STATUS_LABEL[item.status]}
 										</Badge>
-										{canCancelItems && !isCancelled && (
+										{canCancelItems && !isCancelled && !isSentToKitchen && (
 											<Button
-												onClick={() => openCancelDialog(item.id)}
+												onClick={() => openCancelDialog(item.id, false)}
 												size="icon-sm"
 												type="button"
 												variant="ghost"
 											>
 												<X className="size-3" />
 												<span className="sr-only">Cancelar item</span>
+											</Button>
+										)}
+										{canForceCancelItems && !isCancelled && isSentToKitchen && (
+											<Button
+												className="text-destructive"
+												onClick={() => openCancelDialog(item.id, true)}
+												size="icon-sm"
+												title="Forçar cancelamento"
+												type="button"
+												variant="ghost"
+											>
+												<OctagonX className="size-3" />
+												<span className="sr-only">Forçar cancelamento</span>
 											</Button>
 										)}
 									</div>
@@ -140,15 +168,20 @@ export function TabItemsList({
 			</div>
 
 			<Dialog
-				onOpenChange={(open) => !open && setCancelingItemId(null)}
-				open={cancelingItemId !== null}
+				onOpenChange={(open) => !open && setCancelingItem(null)}
+				open={cancelingItem !== null}
 			>
 				<DialogContent showCloseButton={!isPending}>
 					<DialogHeader>
-						<DialogTitle>Cancelar item</DialogTitle>
+						<DialogTitle
+							className={isForcedCancellation ? "text-destructive" : undefined}
+						>
+							{isForcedCancellation ? "Cancelamento forçado" : "Cancelar item"}
+						</DialogTitle>
 						<DialogDescription>
-							Tem certeza que deseja cancelar este item? Esta ação não pode ser
-							desfeita.
+							{isForcedCancellation
+								? "Este item já foi enviado para a cozinha e pode já estar sendo preparado. A cozinha não será avisada automaticamente: comunique o cancelamento à equipe. Esta ação não pode ser desfeita."
+								: "Tem certeza que deseja cancelar este item? Esta ação não pode ser desfeita."}
 						</DialogDescription>
 					</DialogHeader>
 
@@ -159,7 +192,7 @@ export function TabItemsList({
 					<DialogFooter>
 						<Button
 							disabled={isPending}
-							onClick={() => setCancelingItemId(null)}
+							onClick={() => setCancelingItem(null)}
 							type="button"
 							variant="outline"
 						>
@@ -177,7 +210,7 @@ export function TabItemsList({
 									Cancelando...
 								</span>
 							) : (
-								"Confirmar cancelamento"
+								confirmLabel
 							)}
 						</Button>
 					</DialogFooter>

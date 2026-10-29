@@ -22,13 +22,19 @@ export async function cancelTabItemRoute(app: FastifyInstance) {
 				schema: {
 					tags: ["Tabs"],
 					summary: "/restaurants/:slug/tabs/:tabId/items/:itemId/cancel",
-					description: "Cancel a tab item that is still in RECEIVED status",
+					description:
+						"Cancel a tab item that is still in RECEIVED status. Items already sent to the kitchen require `force: true`, which only OWNER and MANAGER may use.",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
 						tabId: z.uuid(),
 						itemId: z.uuid(),
 					}),
+					body: z
+						.object({
+							force: z.boolean().default(false),
+						})
+						.nullish(),
 					response: {
 						200: z.object({
 							item: z.object({
@@ -42,12 +48,14 @@ export async function cancelTabItemRoute(app: FastifyInstance) {
 								menuItemId: z.uuid(),
 								tabId: z.uuid(),
 							}),
+							forced: z.boolean(),
 						}),
 					},
 				},
 			},
 			async (request, reply) => {
 				const { slug, tabId, itemId } = request.params;
+				const force = request.body?.force ?? false;
 
 				const userId = await request.getCurrentUserId();
 				const { restaurant, membership } =
@@ -92,11 +100,32 @@ export async function cancelTabItemRoute(app: FastifyInstance) {
 					);
 				}
 
+				const isForcedCancellation = orderItem.sentToKitchenAt !== null;
+
+				if (isForcedCancellation && !force) {
+					throw new ConflictError(
+						"Item already sent to kitchen.",
+						TabException.ORDER_ITEM_ALREADY_SENT_TO_KITCHEN,
+						"Items already sent to the kitchen can only be cancelled with a forced cancellation."
+					);
+				}
+
+				if (isForcedCancellation && cannot("force_cancel", "Order")) {
+					throw new ForbiddenError(
+						"You are not authorized to force-cancel items.",
+						AuthException.FORBIDDEN,
+						"Only owners and managers can cancel items already sent to the kitchen."
+					);
+				}
+
 				const item = await prisma.$transaction(
 					// biome-ignore lint/suspicious/noExplicitAny: tx type requires generated Prisma client (run db:generate)
 					async (tx: any) => {
+						// A non-forced cancellation must not race with send-to-kitchen.
 						const result = await tx.orderItem.updateMany({
-							where: { id: itemId, status: "RECEIVED" },
+							where: isForcedCancellation
+								? { id: itemId, status: "RECEIVED" }
+								: { id: itemId, status: "RECEIVED", sentToKitchenAt: null },
 							data: { status: "CANCELLED" },
 						});
 
@@ -112,7 +141,7 @@ export async function cancelTabItemRoute(app: FastifyInstance) {
 					}
 				);
 
-				return reply.status(200).send({ item });
+				return reply.status(200).send({ item, forced: isForcedCancellation });
 			}
 		);
 }
