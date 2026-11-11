@@ -32,7 +32,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
 	},
 
 	WAITER(_, { can }) {
-		can(["create", "get", "update"], "Order");
+		can(["create", "get", "update", "deliver"], "Order");
 		can(["get", "update"], "Table");
 		can("get", "Menu");
 	},

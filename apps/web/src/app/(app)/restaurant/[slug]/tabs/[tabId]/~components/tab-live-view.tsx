@@ -13,6 +13,7 @@ import { TabItemsList } from "./tab-items-list";
 
 interface TabLiveViewProps {
 	canCreateOrders: boolean;
+	canDeliverOrders: boolean;
 	canForceCancelOrders: boolean;
 	canUpdateOrders: boolean;
 	currentRestaurant: string;
@@ -23,6 +24,7 @@ interface TabLiveViewProps {
 
 export function TabLiveView({
 	canCreateOrders,
+	canDeliverOrders,
 	canForceCancelOrders,
 	canUpdateOrders,
 	currentRestaurant,
@@ -41,6 +43,7 @@ export function TabLiveView({
 	const canAddItems = canCreateOrders && isOpen;
 	const canManageOrders = canUpdateOrders && isOpen;
 	const canForceCancelItems = canForceCancelOrders && isOpen;
+	const canDeliverItems = canDeliverOrders && isOpen;
 
 	const pendingItemsCount = tab.items.filter(
 		(item) => item.status === "RECEIVED" && item.sentToKitchenAt === null
@@ -86,6 +89,7 @@ export function TabLiveView({
 
 			<TabItemsList
 				canCancelItems={canManageOrders}
+				canDeliverItems={canDeliverItems}
 				canForceCancelItems={canForceCancelItems}
 				items={tab.items}
 				tabId={tab.id}

@@ -5,6 +5,7 @@ import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { addTabItem } from "@/api/http/services/add-tab-item";
 import { cancelTabItem } from "@/api/http/services/cancel-tab-item";
+import { deliverTabItem } from "@/api/http/services/deliver-tab-item";
 import { sendToKitchen } from "@/api/http/services/send-to-kitchen";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
 
@@ -142,4 +143,48 @@ export async function sendToKitchenAction(tabId: string) {
 		description: null,
 		errors: null,
 	};
+}
+
+const DELIVER_ERROR_MESSAGES: Record<string, string> = {
+	ORDER_ITEM_NOT_READY:
+		"Este item não está pronto ou já foi entregue. A comanda foi atualizada.",
+	ORDER_ITEM_NOT_FOUND: "Item não encontrado nesta comanda.",
+	TAB_NOT_OPEN: "Esta comanda já foi fechada.",
+	FORBIDDEN: "Você não tem permissão para marcar itens como entregues.",
+};
+
+export async function deliverTabItemAction(tabId: string, itemId: string) {
+	// biome-ignore lint/style/noNonNullAssertion: always comes as string
+	const currentRestaurant = (await getCurrentRestaurant())!;
+
+	try {
+		await deliverTabItem({ restaurant: currentRestaurant, tabId, itemId });
+	} catch (error) {
+		// Refresh either way: the item may have changed elsewhere.
+		revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
+
+		if (error instanceof HTTPError) {
+			const data = (error.data ?? {}) as {
+				message?: string;
+				title?: string | null;
+			};
+
+			return {
+				success: false,
+				title:
+					(data.message && DELIVER_ERROR_MESSAGES[data.message]) ||
+					data.title ||
+					"Erro ao marcar o item como entregue.",
+			};
+		}
+
+		return {
+			success: false,
+			title: "Erro inesperado. Tente novamente em alguns instantes.",
+		};
+	}
+
+	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
+
+	return { success: true, title: "Item entregue!" };
 }

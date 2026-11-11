@@ -201,6 +201,7 @@ enum OrderItemStatus {
   RECEIVED
   PREPARING
   READY
+  DELIVERED
   CANCELLED
 
   @@map("order_item_status")
@@ -213,6 +214,7 @@ model OrderItem {
   status           OrderItemStatus @default(RECEIVED)
   unitPriceInCents Int             @map("unit_price_in_cents")
   sentToKitchenAt  DateTime?       @map("sent_to_kitchen_at")
+  deliveredAt      DateTime?       @map("delivered_at")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

@@ -23,7 +23,7 @@ const KDS_ACTIVE_STATUSES = ["RECEIVED", "PREPARING"] as const;
  * Statuses that remove an item from the kitchen queue (finished or cancelled). Only returned on
  * incremental (`since`) reads so the KDS knows to drop items it already shows.
  */
-const KDS_REMOVED_STATUSES = ["READY", "CANCELLED"] as const;
+const KDS_REMOVED_STATUSES = ["READY", "DELIVERED", "CANCELLED"] as const;
 
 const KDS_STATUSES = [...KDS_ACTIVE_STATUSES, ...KDS_REMOVED_STATUSES] as const;
 

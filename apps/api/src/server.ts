@@ -51,6 +51,7 @@ import { getTablesRoute } from "./http/routes/tables/get-tables";
 import { openTabRoute } from "./http/routes/tables/open-tab";
 import { addTabItemRoute } from "./http/routes/tabs/add-tab-item";
 import { cancelTabItemRoute } from "./http/routes/tabs/cancel-tab-item";
+import { deliverTabItemRoute } from "./http/routes/tabs/deliver-tab-item";
 import { getTabRoute } from "./http/routes/tabs/get-tab";
 import { sendToKitchenRoute } from "./http/routes/tabs/send-to-kitchen";
 import { createAccountRoute } from "./http/routes/user/create-account";
@@ -147,6 +148,7 @@ app.register(getKdsItemsRoute);
 app.register(updateKdsItemStatusRoute);
 app.register(addTabItemRoute);
 app.register(cancelTabItemRoute);
+app.register(deliverTabItemRoute);
 app.register(sendToKitchenRoute);
 
 app.register(createMenuCategoryRoute);

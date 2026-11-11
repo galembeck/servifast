@@ -46,6 +46,7 @@ export default async function TabPage({
 	return (
 		<TabLiveView
 			canCreateOrders={canCreateOrders}
+			canDeliverOrders={!!permissions?.can("deliver", "Order")}
 			canForceCancelOrders={!!permissions?.can("force_cancel", "Order")}
 			canUpdateOrders={!!permissions?.can("update", "Order")}
 			currentRestaurant={currentRestaurant}

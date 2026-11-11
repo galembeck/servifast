@@ -24,11 +24,12 @@ export interface KdsTicket {
 
 /**
  * An incremental (`since`) read also returns items that left the queue:
- * finished (READY) or cancelled ones and those whose tab was closed.
+ * finished (READY/DELIVERED) or cancelled ones and those whose tab was closed.
  */
 export function isRemovedFromQueue(item: KdsItem) {
 	return (
 		item.status === "READY" ||
+		item.status === "DELIVERED" ||
 		item.status === "CANCELLED" ||
 		item.tabClosedAt !== null
 	);

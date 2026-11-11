@@ -287,7 +287,9 @@ describe("GET /restaurants/:slug/kds/items", () => {
 			expect.objectContaining({
 				where: {
 					restaurantId: restaurant.id,
-					status: { in: ["RECEIVED", "PREPARING", "READY", "CANCELLED"] },
+					status: {
+						in: ["RECEIVED", "PREPARING", "READY", "DELIVERED", "CANCELLED"],
+					},
 					sentToKitchenAt: { not: null },
 					OR: [
 						{ updatedAt: { gt: since } },

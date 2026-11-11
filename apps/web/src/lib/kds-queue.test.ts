@@ -40,6 +40,7 @@ describe("isRemovedFromQueue", () => {
 		expect(isRemovedFromQueue(makeItem())).toBe(false);
 		expect(isRemovedFromQueue(makeItem({ status: "PREPARING" }))).toBe(false);
 		expect(isRemovedFromQueue(makeItem({ status: "READY" }))).toBe(true);
+		expect(isRemovedFromQueue(makeItem({ status: "DELIVERED" }))).toBe(true);
 		expect(isRemovedFromQueue(makeItem({ status: "CANCELLED" }))).toBe(true);
 		expect(isRemovedFromQueue(makeItem({ tabClosedAt: minutesAgo(1) }))).toBe(
 			true

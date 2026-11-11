@@ -1,9 +1,15 @@
 import { api } from "../api-client";
 
-export type OrderItemStatus = "RECEIVED" | "PREPARING" | "READY" | "CANCELLED";
+export type OrderItemStatus =
+	| "RECEIVED"
+	| "PREPARING"
+	| "READY"
+	| "DELIVERED"
+	| "CANCELLED";
 
 export interface TabItem {
 	createdAt: string;
+	deliveredAt: string | null;
 	id: string;
 	menuItem: {
 		id: string;

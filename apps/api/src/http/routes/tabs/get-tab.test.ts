@@ -36,6 +36,7 @@ function makeTab(restaurantId: string, tabId = faker.string.uuid()) {
 				status: "RECEIVED",
 				unitPriceInCents: 6990,
 				sentToKitchenAt: new Date(),
+				deliveredAt: null,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 				tabId,
