@@ -107,9 +107,9 @@ export async function openTabAction(data: FormData) {
 		revalidateTag(`${currentRestaurant}/tables`, "max");
 
 		if (error instanceof HTTPError) {
-			const { title, description } = (await error.response.json()) as {
-				title: string | null;
-				description: string | null;
+			const { title = null, description = null } = (error.data ?? {}) as {
+				title?: string | null;
+				description?: string | null;
 			};
 
 			return { success: false, title, description, errors: null };
