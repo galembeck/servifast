@@ -9,10 +9,10 @@ import {
 } from "@/api/http/services/get-kds-items";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { useLiveQuery } from "@/hooks/use-live-query";
-import { applyKdsDelta, groupKdsItemsByTab } from "@/lib/kds-queue";
+import { applyKdsDelta, groupKdsItemsByOrder } from "@/lib/kds-queue";
 import { KdsTicketCard } from "./kds-ticket-card";
 
-const CLOCK_TICK_IN_MS = 30_000;
+const CLOCK_TICK_IN_MS = 1000;
 
 /**
  * Current time, only on the client: waiting times depend on the viewer's
@@ -57,7 +57,7 @@ export function KdsBoard({ currentRestaurant, queue }: KdsBoardProps) {
 		serverData: queue,
 	});
 
-	const tickets = groupKdsItemsByTab(data.items);
+	const tickets = groupKdsItemsByOrder(data.items);
 	const itemsCount = data.items.reduce((sum, item) => sum + item.quantity, 0);
 
 	return (
@@ -65,8 +65,8 @@ export function KdsBoard({ currentRestaurant, queue }: KdsBoardProps) {
 			<div className="flex flex-wrap items-center justify-between gap-2">
 				<div>
 					<h1 className="font-semibold text-2xl">Cozinha</h1>
-					<p className="text-muted-foreground text-sm">
-						{tickets.length} {tickets.length === 1 ? "mesa" : "mesas"} ·{" "}
+					<p className="text-muted-foreground">
+						{tickets.length} {tickets.length === 1 ? "pedido" : "pedidos"} ·{" "}
 						{itemsCount} {itemsCount === 1 ? "item" : "itens"} na fila
 					</p>
 				</div>
@@ -80,9 +80,14 @@ export function KdsBoard({ currentRestaurant, queue }: KdsBoardProps) {
 					<p className="text-sm">Nenhum pedido na fila no momento.</p>
 				</div>
 			) : (
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-					{tickets.map((ticket) => (
-						<KdsTicketCard key={ticket.tabId} now={now} ticket={ticket} />
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+					{tickets.map((ticket, index) => (
+						<KdsTicketCard
+							key={ticket.id}
+							now={now}
+							position={index + 1}
+							ticket={ticket}
+						/>
 					))}
 				</div>
 			)}

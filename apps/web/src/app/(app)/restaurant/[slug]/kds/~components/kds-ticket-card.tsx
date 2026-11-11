@@ -1,78 +1,99 @@
-import { Clock } from "lucide-react";
+import { Timer } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
+	formatElapsed,
+	getElapsedSeconds,
 	getKdsUrgency,
-	getWaitingMinutes,
 	type KdsTicket,
 	type KdsUrgency,
 } from "@/lib/kds-queue";
 
-const URGENCY_STYLES: Record<KdsUrgency, { badge: string; card: string }> = {
+const URGENCY_STYLES: Record<
+	KdsUrgency,
+	{ card: string; timer: string; label: string }
+> = {
 	normal: {
-		card: "",
-		badge: "bg-muted text-muted-foreground",
+		card: "border-t-8 border-t-emerald-500",
+		timer: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400",
+		label: "No prazo",
 	},
 	warning: {
-		card: "border-amber-500/60",
-		badge: "bg-amber-500/15 text-amber-600 dark:text-amber-400",
+		card: "border-t-8 border-t-amber-500",
+		timer: "bg-amber-500/15 text-amber-700 dark:text-amber-400",
+		label: "Atenção",
 	},
 	late: {
-		card: "border-red-500/70",
-		badge: "bg-red-500/15 text-red-600 dark:text-red-400",
+		card: "border-t-8 border-t-red-500",
+		timer: "bg-red-500/15 text-red-700 dark:text-red-400",
+		label: "Atrasado",
 	},
 };
 
-function formatWaiting(minutes: number) {
-	return minutes < 1 ? "agora" : `${minutes} min`;
-}
+const sentAtFormatter = new Intl.DateTimeFormat("pt-BR", {
+	hour: "2-digit",
+	minute: "2-digit",
+});
 
 interface KdsTicketCardProps {
 	now: number | null;
+	position: number;
 	ticket: KdsTicket;
 }
 
-export function KdsTicketCard({ now, ticket }: KdsTicketCardProps) {
-	const waitingMinutes =
-		now === null ? null : getWaitingMinutes(ticket.oldestSentAt, now);
+export function KdsTicketCard({ now, position, ticket }: KdsTicketCardProps) {
+	const elapsedSeconds =
+		now === null ? null : getElapsedSeconds(ticket.sentAt, now);
 	const urgency =
-		waitingMinutes === null ? "normal" : getKdsUrgency(waitingMinutes);
+		elapsedSeconds === null ? "normal" : getKdsUrgency(elapsedSeconds);
 	const styles = URGENCY_STYLES[urgency];
 
 	return (
-		<Card className={styles.card}>
-			<CardHeader className="flex-row items-start justify-between gap-2">
-				<div>
-					<p className="font-semibold text-xl">Mesa {ticket.table.number}</p>
-					{ticket.table.positionReference && (
-						<p className="text-muted-foreground text-xs">
-							{ticket.table.positionReference}
-						</p>
-					)}
+		<Card
+			aria-label={`Pedido ${position} da fila, mesa ${ticket.table.number}`}
+			className={styles.card}
+		>
+			<CardHeader className="flex-row items-start justify-between gap-3">
+				<div className="min-w-0">
+					<p className="font-medium text-muted-foreground text-sm">
+						#{position} na fila
+					</p>
+					<p className="font-bold text-3xl">Mesa {ticket.table.number}</p>
+					<p className="text-muted-foreground text-sm">
+						{ticket.table.positionReference
+							? `${ticket.table.positionReference} · `
+							: ""}
+						enviado às {sentAtFormatter.format(new Date(ticket.sentAt))}
+					</p>
 				</div>
 
-				{waitingMinutes !== null && (
-					<span
-						className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium text-xs ${styles.badge}`}
-						title="Tempo desde o envio mais antigo desta mesa"
+				{elapsedSeconds !== null && (
+					<div
+						className={`flex shrink-0 flex-col items-center rounded-lg px-3 py-2 ${styles.timer}`}
+						title="Tempo desde que o pedido chegou na cozinha"
 					>
-						<Clock className="size-3" />
-						{formatWaiting(waitingMinutes)}
-					</span>
+						<span className="inline-flex items-center gap-1 font-bold text-2xl tabular-nums">
+							<Timer className="size-5" />
+							{formatElapsed(elapsedSeconds)}
+						</span>
+						<span className="font-medium text-xs uppercase">
+							{styles.label}
+						</span>
+					</div>
 				)}
 			</CardHeader>
 
 			<CardContent>
-				<ul className="space-y-2">
+				<ul className="divide-y">
 					{ticket.items.map((item) => (
-						<li className="flex gap-2" key={item.id}>
-							<span className="min-w-8 font-semibold tabular-nums">
+						<li className="flex gap-3 py-2 text-lg" key={item.id}>
+							<span className="min-w-10 font-bold tabular-nums">
 								{item.quantity}×
 							</span>
 							<div className="min-w-0">
-								<p className="font-medium">{item.productName}</p>
+								<p className="font-semibold">{item.productName}</p>
 								{item.notes && (
-									<p className="font-medium text-amber-600 text-sm dark:text-amber-400">
-										{item.notes}
+									<p className="font-semibold text-amber-700 text-base dark:text-amber-400">
+										⚠ {item.notes}
 									</p>
 								)}
 							</div>

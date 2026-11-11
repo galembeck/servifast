@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { KdsItem } from "@/api/http/services/get-kds-items";
 import {
 	applyKdsDelta,
+	formatElapsed,
+	getElapsedSeconds,
 	getKdsUrgency,
-	getWaitingMinutes,
-	groupKdsItemsByTab,
+	groupKdsItemsByOrder,
 	isRemovedFromQueue,
 } from "./kds-queue";
 
@@ -96,61 +97,81 @@ describe("applyKdsDelta", () => {
 	});
 });
 
-describe("groupKdsItemsByTab", () => {
-	it("agrupa por comanda e ordena as mesas pelo pedido mais antigo", () => {
-		const table5Late = makeItem({
+describe("groupKdsItemsByOrder", () => {
+	it("cria um pedido por envio e ordena pela chegada (FIFO)", () => {
+		const table5FirstSent = minutesAgo(25);
+		const table5First = makeItem({
 			tabId: "tab-5",
 			table: { number: 5, positionReference: "Varanda" },
-			sentToKitchenAt: minutesAgo(3),
+			sentToKitchenAt: table5FirstSent,
+		});
+		const table5FirstOther = makeItem({
+			tabId: "tab-5",
+			table: { number: 5, positionReference: "Varanda" },
+			sentToKitchenAt: table5FirstSent,
 		});
 		const table2 = makeItem({
 			tabId: "tab-2",
 			table: { number: 2, positionReference: null },
 			sentToKitchenAt: minutesAgo(12),
 		});
-		const table5First = makeItem({
+		const table5SecondRound = makeItem({
 			tabId: "tab-5",
 			table: { number: 5, positionReference: "Varanda" },
-			sentToKitchenAt: minutesAgo(25),
+			sentToKitchenAt: minutesAgo(3),
 		});
 
-		const tickets = groupKdsItemsByTab([table5Late, table2, table5First]);
+		const tickets = groupKdsItemsByOrder([
+			table5SecondRound,
+			table2,
+			table5First,
+			table5FirstOther,
+		]);
 
 		expect(
 			tickets.map((ticket) => ({
 				table: ticket.table.number,
-				oldestSentAt: ticket.oldestSentAt,
+				sentAt: ticket.sentAt,
 				items: ticket.items.map((item) => item.id),
 			}))
 		).toEqual([
 			{
 				table: 5,
-				oldestSentAt: table5First.sentToKitchenAt,
-				items: [table5First.id, table5Late.id],
+				sentAt: table5FirstSent,
+				items: [table5First.id, table5FirstOther.id],
 			},
+			{ table: 2, sentAt: table2.sentToKitchenAt, items: [table2.id] },
 			{
-				table: 2,
-				oldestSentAt: table2.sentToKitchenAt,
-				items: [table2.id],
+				table: 5,
+				sentAt: table5SecondRound.sentToKitchenAt,
+				items: [table5SecondRound.id],
 			},
 		]);
 	});
 
 	it("retorna lista vazia quando a fila está vazia", () => {
-		expect(groupKdsItemsByTab([])).toEqual([]);
+		expect(groupKdsItemsByOrder([])).toEqual([]);
 	});
 });
 
-describe("tempo de espera e urgência", () => {
-	it("calcula os minutos de espera (nunca negativo)", () => {
-		expect(getWaitingMinutes(minutesAgo(12), NOW)).toBe(12);
+describe("cronômetro e urgência", () => {
+	it("calcula os segundos decorridos (nunca negativo)", () => {
+		expect(getElapsedSeconds(minutesAgo(12), NOW)).toBe(12 * 60);
 		expect(
-			getWaitingMinutes(new Date(NOW + MINUTE_IN_MS).toISOString(), NOW)
+			getElapsedSeconds(new Date(NOW + MINUTE_IN_MS).toISOString(), NOW)
 		).toBe(0);
 	});
 
-	it("fica amarelo a partir de 15 min e vermelho a partir de 25 min", () => {
-		expect([0, 14, 15, 24, 25, 60].map(getKdsUrgency)).toEqual([
+	it("formata como mm:ss e h:mm:ss depois de uma hora", () => {
+		expect(formatElapsed(0)).toBe("00:00");
+		expect(formatElapsed(65)).toBe("01:05");
+		expect(formatElapsed(59 * 60 + 59)).toBe("59:59");
+		expect(formatElapsed(3600 + 2 * 60 + 3)).toBe("1:02:03");
+	});
+
+	it("verde até 15 min, amarelo a partir de 15 min e vermelho a partir de 25 min", () => {
+		const minutes = [0, 14, 15, 24, 25, 60];
+		expect(minutes.map((m) => getKdsUrgency(m * 60))).toEqual([
 			"normal",
 			"normal",
 			"warning",
@@ -158,5 +179,6 @@ describe("tempo de espera e urgência", () => {
 			"late",
 			"late",
 		]);
+		expect(getKdsUrgency(15 * 60 - 1)).toBe("normal");
 	});
 });
