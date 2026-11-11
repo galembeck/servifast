@@ -18,6 +18,8 @@ import { cancelTabItemAction } from "../~actions/actions";
 
 const STATUS_LABEL: Record<TabItem["status"], string> = {
 	RECEIVED: "Recebido",
+	PREPARING: "Em preparo",
+	READY: "Pronto",
 	CANCELLED: "Cancelado",
 };
 
@@ -26,6 +28,8 @@ const STATUS_VARIANT: Record<
 	"default" | "secondary" | "outline" | "destructive"
 > = {
 	RECEIVED: "secondary",
+	PREPARING: "outline",
+	READY: "default",
 	CANCELLED: "destructive",
 };
 
@@ -146,19 +150,21 @@ export function TabItemsList({
 												<span className="sr-only">Cancelar item</span>
 											</Button>
 										)}
-										{canForceCancelItems && !isCancelled && isSentToKitchen && (
-											<Button
-												className="text-destructive"
-												onClick={() => openCancelDialog(item.id, true)}
-												size="icon-sm"
-												title="Forçar cancelamento"
-												type="button"
-												variant="ghost"
-											>
-												<OctagonX className="size-3" />
-												<span className="sr-only">Forçar cancelamento</span>
-											</Button>
-										)}
+										{canForceCancelItems &&
+											item.status === "RECEIVED" &&
+											isSentToKitchen && (
+												<Button
+													className="text-destructive"
+													onClick={() => openCancelDialog(item.id, true)}
+													size="icon-sm"
+													title="Forçar cancelamento"
+													type="button"
+													variant="ghost"
+												>
+													<OctagonX className="size-3" />
+													<span className="sr-only">Forçar cancelamento</span>
+												</Button>
+											)}
 									</div>
 								</div>
 							</CardContent>

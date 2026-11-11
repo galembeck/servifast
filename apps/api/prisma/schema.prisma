@@ -199,6 +199,8 @@ model MenuItem {
 
 enum OrderItemStatus {
   RECEIVED
+  PREPARING
+  READY
   CANCELLED
 
   @@map("order_item_status")

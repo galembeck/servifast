@@ -29,7 +29,7 @@ interface FakeOrderItem {
 	quantity: number;
 	restaurantId: string;
 	sentToKitchenAt: Date | null;
-	status: "RECEIVED" | "CANCELLED";
+	status: "RECEIVED" | "PREPARING" | "READY" | "CANCELLED";
 	tab: {
 		closedAt: Date | null;
 		table: { number: number; positionReference: string | null };
@@ -234,7 +234,7 @@ describe("GET /restaurants/:slug/kds/items", () => {
 		expect(prismaMock.orderItem.findMany).toHaveBeenCalledWith({
 			where: {
 				restaurantId: restaurant.id,
-				status: { in: ["RECEIVED"] },
+				status: { in: ["RECEIVED", "PREPARING"] },
 				sentToKitchenAt: { not: null },
 				tab: { closedAt: null },
 			},
@@ -287,7 +287,7 @@ describe("GET /restaurants/:slug/kds/items", () => {
 			expect.objectContaining({
 				where: {
 					restaurantId: restaurant.id,
-					status: { in: ["RECEIVED", "CANCELLED"] },
+					status: { in: ["RECEIVED", "PREPARING", "READY", "CANCELLED"] },
 					sentToKitchenAt: { not: null },
 					OR: [
 						{ updatedAt: { gt: since } },

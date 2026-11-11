@@ -21,5 +21,11 @@ export default async function KdsPage() {
 
 	const queue = await getKdsItems(currentRestaurant);
 
-	return <KdsBoard currentRestaurant={currentRestaurant} queue={queue} />;
+	return (
+		<KdsBoard
+			canUpdateStatus={permissions.can("update_kitchen_status", "Order")}
+			currentRestaurant={currentRestaurant}
+			queue={queue}
+		/>
+	);
 }

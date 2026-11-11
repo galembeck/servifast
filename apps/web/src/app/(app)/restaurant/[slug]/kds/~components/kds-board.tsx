@@ -1,15 +1,18 @@
 "use client";
 
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ChefHat } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import {
 	type GetKdsItemsResponse,
 	getKdsItems,
 } from "@/api/http/services/get-kds-items";
+import type { KitchenTargetStatus } from "@/api/http/services/update-kds-item-status";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { useLiveQuery } from "@/hooks/use-live-query";
 import { applyKdsDelta, groupKdsItemsByOrder } from "@/lib/kds-queue";
+import { updateKdsItemStatusAction } from "../~actions/actions";
 import { KdsTicketCard } from "./kds-ticket-card";
 
 const CLOCK_TICK_IN_MS = 1000;
@@ -31,14 +34,74 @@ function useNow() {
 }
 
 interface KdsBoardProps {
+	canUpdateStatus: boolean;
 	currentRestaurant: string;
 	queue: GetKdsItemsResponse;
 }
 
-export function KdsBoard({ currentRestaurant, queue }: KdsBoardProps) {
+export function KdsBoard({
+	canUpdateStatus,
+	currentRestaurant,
+	queue,
+}: KdsBoardProps) {
 	const queryClient = useQueryClient();
 	const queryKey = ["restaurants", currentRestaurant, "kds"];
 	const now = useNow();
+
+	const updateStatus = useMutation({
+		// Goes through a Server Action, like the app's other mutations: the API's
+		// CORS policy doesn't allow PATCH straight from the browser.
+		mutationFn: async ({
+			itemId,
+			status,
+		}: {
+			itemId: string;
+			status: KitchenTargetStatus;
+		}) => {
+			const result = await updateKdsItemStatusAction(itemId, status);
+
+			if (!result.success) {
+				throw new Error(
+					result.title ?? "Não foi possível atualizar o status do item."
+				);
+			}
+
+			return result;
+		},
+		onSuccess: async ({ item }) => {
+			// Apply the change right away instead of waiting for the next poll.
+			// An in-flight poll could overwrite it with stale data, so cancel it.
+			await queryClient.cancelQueries({ queryKey });
+			queryClient.setQueryData<GetKdsItemsResponse>(queryKey, (previous) => {
+				const current = previous ?? queue;
+				const existing = current.items.find((i) => i.id === item.id);
+
+				if (!existing) {
+					return current;
+				}
+
+				return {
+					...current,
+					items: applyKdsDelta(current.items, [
+						{ ...existing, status: item.status },
+					]),
+				};
+			});
+
+			if (item.status === "READY") {
+				toast.success("Item pronto!");
+			}
+		},
+		onError: async (error) => {
+			toast.error(error.message);
+			// The item may have changed elsewhere: resync with the server.
+			await queryClient.invalidateQueries({ queryKey });
+		},
+	});
+
+	const pendingItemId = updateStatus.isPending
+		? updateStatus.variables?.itemId
+		: undefined;
 
 	const { data, isOffline } = useLiveQuery({
 		queryKey,
@@ -83,8 +146,13 @@ export function KdsBoard({ currentRestaurant, queue }: KdsBoardProps) {
 				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
 					{tickets.map((ticket, index) => (
 						<KdsTicketCard
+							canUpdateStatus={canUpdateStatus}
 							key={ticket.id}
 							now={now}
+							onUpdateStatus={(itemId, status) =>
+								updateStatus.mutate({ itemId, status })
+							}
+							pendingItemId={pendingItemId}
 							position={index + 1}
 							ticket={ticket}
 						/>

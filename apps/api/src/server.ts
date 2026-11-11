@@ -29,6 +29,7 @@ import { registerFromInviteRoute } from "./http/routes/invites/register-from-inv
 import { rejectInviteRoute } from "./http/routes/invites/reject-invite";
 import { revokeInviteRoute } from "./http/routes/invites/revoke-invite";
 import { getKdsItemsRoute } from "./http/routes/kds/get-kds-items";
+import { updateKdsItemStatusRoute } from "./http/routes/kds/update-kds-item-status";
 import { getMembersRoute } from "./http/routes/members/get-members";
 import { removeMemberRoute } from "./http/routes/members/remove-member";
 import { updateMemberRoute } from "./http/routes/members/update-member";
@@ -143,6 +144,7 @@ app.register(getTablesRoute);
 app.register(openTabRoute);
 app.register(getTabRoute);
 app.register(getKdsItemsRoute);
+app.register(updateKdsItemStatusRoute);
 app.register(addTabItemRoute);
 app.register(cancelTabItemRoute);
 app.register(sendToKitchenRoute);

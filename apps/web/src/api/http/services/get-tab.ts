@@ -1,6 +1,6 @@
 import { api } from "../api-client";
 
-export type OrderItemStatus = "RECEIVED" | "CANCELLED";
+export type OrderItemStatus = "RECEIVED" | "PREPARING" | "READY" | "CANCELLED";
 
 export interface TabItem {
 	createdAt: string;

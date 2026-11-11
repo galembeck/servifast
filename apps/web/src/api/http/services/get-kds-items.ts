@@ -1,6 +1,6 @@
 import { api } from "../api-client";
 
-export type KdsItemStatus = "RECEIVED" | "CANCELLED";
+export type KdsItemStatus = "RECEIVED" | "PREPARING" | "READY" | "CANCELLED";
 
 export interface KdsItem {
 	id: string;

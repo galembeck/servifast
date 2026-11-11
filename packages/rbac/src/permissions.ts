@@ -44,7 +44,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
 	},
 
 	KITCHEN(_, { can }) {
-		can(["get", "update"], "Order");
+		can(["get", "update", "update_kitchen_status"], "Order");
 		can("get", "Menu");
 	},
 

@@ -1,4 +1,7 @@
-import { Timer } from "lucide-react";
+import { Check, Flame, Loader2, Timer } from "lucide-react";
+import type { KitchenTargetStatus } from "@/api/http/services/update-kds-item-status";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
 	formatElapsed,
@@ -35,12 +38,22 @@ const sentAtFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 interface KdsTicketCardProps {
+	canUpdateStatus: boolean;
 	now: number | null;
+	onUpdateStatus: (itemId: string, status: KitchenTargetStatus) => void;
+	pendingItemId: string | undefined;
 	position: number;
 	ticket: KdsTicket;
 }
 
-export function KdsTicketCard({ now, position, ticket }: KdsTicketCardProps) {
+export function KdsTicketCard({
+	canUpdateStatus,
+	now,
+	onUpdateStatus,
+	pendingItemId,
+	position,
+	ticket,
+}: KdsTicketCardProps) {
 	const elapsedSeconds =
 		now === null ? null : getElapsedSeconds(ticket.sentAt, now);
 	const urgency =
@@ -84,21 +97,56 @@ export function KdsTicketCard({ now, position, ticket }: KdsTicketCardProps) {
 
 			<CardContent>
 				<ul className="divide-y">
-					{ticket.items.map((item) => (
-						<li className="flex gap-3 py-2 text-lg" key={item.id}>
-							<span className="min-w-10 font-bold tabular-nums">
-								{item.quantity}×
-							</span>
-							<div className="min-w-0">
-								<p className="font-semibold">{item.productName}</p>
-								{item.notes && (
-									<p className="font-semibold text-amber-700 text-base dark:text-amber-400">
-										⚠ {item.notes}
-									</p>
+					{ticket.items.map((item) => {
+						const isPreparing = item.status === "PREPARING";
+						const isPending = pendingItemId === item.id;
+
+						return (
+							<li className="space-y-2 py-3 text-lg" key={item.id}>
+								<div className="flex gap-3">
+									<span className="min-w-10 font-bold tabular-nums">
+										{item.quantity}×
+									</span>
+									<div className="min-w-0 flex-1">
+										<p className="font-semibold">{item.productName}</p>
+										{item.notes && (
+											<p className="font-semibold text-amber-700 text-base dark:text-amber-400">
+												⚠ {item.notes}
+											</p>
+										)}
+									</div>
+									<Badge
+										className="shrink-0 self-start"
+										variant={isPreparing ? "default" : "secondary"}
+									>
+										{isPreparing ? "Em preparo" : "Recebido"}
+									</Badge>
+								</div>
+
+								{canUpdateStatus && (
+									<Button
+										className="h-12 w-full text-base"
+										disabled={isPending}
+										onClick={() =>
+											onUpdateStatus(
+												item.id,
+												isPreparing ? "READY" : "PREPARING"
+											)
+										}
+										type="button"
+										variant={isPreparing ? "default" : "outline"}
+									>
+										{isPending && <Loader2 className="size-5 animate-spin" />}
+										{!isPending && isPreparing && <Check className="size-5" />}
+										{!(isPending || isPreparing) && (
+											<Flame className="size-5" />
+										)}
+										{isPreparing ? "Concluir" : "Iniciar preparo"}
+									</Button>
 								)}
-							</div>
-						</li>
-					))}
+							</li>
+						);
+					})}
 				</ul>
 			</CardContent>
 		</Card>

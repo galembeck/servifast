@@ -41,7 +41,12 @@ export async function getTabRoute(app: FastifyInstance) {
 										id: z.uuid(),
 										quantity: z.number(),
 										notes: z.string().nullable(),
-										status: z.enum(["RECEIVED", "CANCELLED"]),
+										status: z.enum([
+											"RECEIVED",
+											"PREPARING",
+											"READY",
+											"CANCELLED",
+										]),
 										unitPriceInCents: z.number(),
 										sentToKitchenAt: z.date().nullable(),
 										createdAt: z.date(),

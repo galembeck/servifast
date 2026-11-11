@@ -15,16 +15,15 @@ import { UnauthorizedError } from "../_errors/unauthorized-error";
 import { UnprocessableEntityError } from "../_errors/unprocessable-entity-error";
 
 /**
- * Statuses the kitchen still has to work on. Today the enum only has
- * RECEIVED/CANCELLED; add future prep statuses (e.g. PREPARING) here.
+ * Statuses the kitchen still has to work on (RECEIVED → PREPARING → READY).
  */
-const KDS_ACTIVE_STATUSES = ["RECEIVED"] as const;
+const KDS_ACTIVE_STATUSES = ["RECEIVED", "PREPARING"] as const;
 
 /**
- * Statuses that remove an item from the kitchen queue. Only returned on
+ * Statuses that remove an item from the kitchen queue (finished or cancelled). Only returned on
  * incremental (`since`) reads so the KDS knows to drop items it already shows.
  */
-const KDS_REMOVED_STATUSES = ["CANCELLED"] as const;
+const KDS_REMOVED_STATUSES = ["READY", "CANCELLED"] as const;
 
 const KDS_STATUSES = [...KDS_ACTIVE_STATUSES, ...KDS_REMOVED_STATUSES] as const;
 
@@ -70,7 +69,7 @@ export async function getKdsItemsRoute(app: FastifyInstance) {
 					tags: ["KDS"],
 					summary: "/restaurants/:slug/kds/items",
 					description:
-						"Read-only kitchen queue: items sent to the kitchen and not finished yet (open tabs only), oldest first. Pass `since` (ISO 8601) to get only changes after it — this incremental read also returns items CANCELLED after `since` and items whose tab was closed after `since` (`tabClosedAt` set), so the KDS can remove them. Use the returned `serverTime` as the next `since`.",
+						"Read-only kitchen queue: items sent to the kitchen and not finished yet (open tabs only), oldest first. Pass `since` (ISO 8601) to get only changes after it — this incremental read also returns items that became READY or CANCELLED after `since` and items whose tab was closed after `since` (`tabClosedAt` set), so the KDS can remove them. Use the returned `serverTime` as the next `since`.",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
