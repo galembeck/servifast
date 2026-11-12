@@ -40,6 +40,7 @@ import { getRestaurantsRoute } from "@/http/routes/restaurants/get-restaurants";
 import { transferOwnershipRoute } from "@/http/routes/restaurants/transfer-ownership";
 import { updateRestaurantRoute } from "@/http/routes/restaurants/update-restaurant";
 import { createTableRoute } from "@/http/routes/tables/create-table";
+import { getTableBillRoute } from "@/http/routes/tables/get-table-bill";
 import { getTablesRoute } from "@/http/routes/tables/get-tables";
 import { openTabRoute } from "@/http/routes/tables/open-tab";
 import { addTabItemRoute } from "@/http/routes/tabs/add-tab-item";
@@ -99,6 +100,7 @@ export async function buildApp() {
 	await app.register(deliverTabItemRoute);
 	await app.register(closeTabRoute);
 	await app.register(requestBillRoute);
+	await app.register(getTableBillRoute);
 	await app.register(sendToKitchenRoute);
 	await app.register(createMenuCategoryRoute);
 	await app.register(getMenuCategoriesRoute);

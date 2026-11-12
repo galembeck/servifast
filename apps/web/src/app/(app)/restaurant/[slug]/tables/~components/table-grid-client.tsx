@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { TableStatus } from "@/api/http/services/get-tables";
 import { getTables } from "@/api/http/services/get-tables";
+import { BillDialog } from "@/components/bill-dialog";
 import { OfflineIndicator } from "@/components/offline-indicator";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { useLiveQuery } from "@/hooks/use-live-query";
 import { OpenTabDialog } from "./open-tab-dialog";
@@ -101,6 +104,7 @@ interface TableGridClientProps {
 	canOpenTab: boolean;
 	currentRestaurant: string;
 	slug: string;
+	tableClickOpensBill: boolean;
 	tables: Table[];
 }
 
@@ -109,10 +113,12 @@ export function TableGridClient({
 	canOpenTab,
 	currentRestaurant,
 	slug,
+	tableClickOpensBill,
 }: TableGridClientProps) {
 	const router = useRouter();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+	const [billTable, setBillTable] = useState<Table | null>(null);
 
 	const { data: tables, isOffline } = useLiveQuery({
 		queryKey: ["restaurants", currentRestaurant, "tables"],
@@ -127,6 +133,11 @@ export function TableGridClient({
 			}
 			setSelectedTable(table);
 			setDialogOpen(true);
+			return;
+		}
+
+		if (table.currentTabId && tableClickOpensBill) {
+			setBillTable(table);
 			return;
 		}
 
@@ -230,6 +241,27 @@ export function TableGridClient({
 					);
 				})}
 			</div>
+
+			{billTable?.currentTabId && (
+				<BillDialog
+					actions={
+						<Button asChild>
+							<Link href={`/restaurant/${slug}/tabs/${billTable.currentTabId}`}>
+								Abrir comanda
+							</Link>
+						</Button>
+					}
+					currentRestaurant={currentRestaurant}
+					onOpenChange={(open) => {
+						if (!open) {
+							setBillTable(null);
+						}
+					}}
+					open
+					tableId={billTable.id}
+					tableNumber={billTable.number}
+				/>
+			)}
 
 			{selectedTable && (
 				<OpenTabDialog

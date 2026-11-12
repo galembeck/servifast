@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ScrollText } from "lucide-react";
 import Link from "next/link";
-import type { ComponentProps } from "react";
+import { type ComponentProps, useState } from "react";
 import { getTab, type Tab } from "@/api/http/services/get-tab";
+import { BillDialog } from "@/components/bill-dialog";
 import { OfflineIndicator } from "@/components/offline-indicator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ interface TabLiveViewProps {
 	canForceCancelOrders: boolean;
 	canRequestBill: boolean;
 	canUpdateOrders: boolean;
+	canViewBill: boolean;
 	currentRestaurant: string;
 	menuItems: ComponentProps<typeof AddTabItemSheet>["menuItems"];
 	slug: string;
@@ -34,6 +36,7 @@ export function TabLiveView({
 	canForceCancelOrders,
 	canRequestBill,
 	canUpdateOrders,
+	canViewBill,
 	currentRestaurant,
 	menuItems,
 	slug,
@@ -46,7 +49,9 @@ export function TabLiveView({
 		enabled: serverTab.closedAt === null,
 	});
 
+	const [isBillOpen, setIsBillOpen] = useState(false);
 	const isOpen = tab.closedAt === null;
+	const canViewThisBill = canViewBill && isOpen;
 	const canAddItems = canCreateOrders && isOpen;
 	const canManageOrders = canUpdateOrders && isOpen;
 	const canForceCancelItems = canForceCancelOrders && isOpen;
@@ -85,6 +90,7 @@ export function TabLiveView({
 				{(canAddItems ||
 					canManageOrders ||
 					canRequestThisBill ||
+					canViewThisBill ||
 					canCloseThisTab) && (
 					<div className="ml-auto flex items-center gap-2">
 						{canManageOrders && (
@@ -100,6 +106,16 @@ export function TabLiveView({
 								tabId={tab.id}
 							/>
 						)}
+						{canViewThisBill && (
+							<Button
+								onClick={() => setIsBillOpen(true)}
+								type="button"
+								variant="outline"
+							>
+								<ScrollText className="mr-2 size-4" />
+								Ver conta
+							</Button>
+						)}
 						{canRequestThisBill && <RequestBillButton tabId={tab.id} />}
 						{canCloseThisTab && (
 							<CloseTabDialog items={tab.items} slug={slug} tabId={tab.id} />
@@ -114,6 +130,16 @@ export function TabLiveView({
 				<p className="rounded-md border bg-muted px-4 py-3 text-muted-foreground text-sm">
 					Esta comanda foi encerrada.
 				</p>
+			)}
+
+			{canViewThisBill && (
+				<BillDialog
+					currentRestaurant={currentRestaurant}
+					onOpenChange={setIsBillOpen}
+					open={isBillOpen}
+					tableId={tab.tableId}
+					tableNumber={tab.table.number}
+				/>
 			)}
 
 			<TabItemsList

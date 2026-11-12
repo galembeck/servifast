@@ -51,6 +51,9 @@ export default async function TabPage({
 			canForceCancelOrders={!!permissions?.can("force_cancel", "Order")}
 			canRequestBill={!!permissions?.can("update", "Table")}
 			canUpdateOrders={!!permissions?.can("update", "Order")}
+			canViewBill={
+				!!permissions?.can("get", "Table") && !!permissions?.can("get", "Order")
+			}
 			currentRestaurant={currentRestaurant}
 			menuItems={menuItems}
 			slug={slug}

@@ -22,6 +22,11 @@ export default async function RestaurantTablesPage({
 				<TableGrid
 					canOpenTab={!!permissions?.can("create", "Order")}
 					slug={slug}
+					// Cashiers can't take orders: for them a table opens its bill.
+					tableClickOpensBill={
+						!!permissions?.can("close", "Order") &&
+						!permissions?.can("create", "Order")
+					}
 				/>
 			) : (
 				<p className="text-muted-foreground text-sm">

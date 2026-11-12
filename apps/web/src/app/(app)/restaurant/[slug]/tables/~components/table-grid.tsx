@@ -5,9 +5,14 @@ import { TableGridClient } from "./table-grid-client";
 interface TableGridProps {
 	canOpenTab: boolean;
 	slug: string;
+	tableClickOpensBill: boolean;
 }
 
-export async function TableGrid({ canOpenTab, slug }: TableGridProps) {
+export async function TableGrid({
+	canOpenTab,
+	slug,
+	tableClickOpensBill,
+}: TableGridProps) {
 	// biome-ignore lint/style/noNonNullAssertion: always comes as string
 	const currentRestaurant = (await getCurrentRestaurant())!;
 
@@ -18,6 +23,7 @@ export async function TableGrid({ canOpenTab, slug }: TableGridProps) {
 			canOpenTab={canOpenTab}
 			currentRestaurant={currentRestaurant}
 			slug={slug}
+			tableClickOpensBill={tableClickOpensBill}
 			tables={tables}
 		/>
 	);
