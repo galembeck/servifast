@@ -5,7 +5,9 @@ import { revalidateTag } from "next/cache";
 import { z } from "zod";
 import { addTabItem } from "@/api/http/services/add-tab-item";
 import { cancelTabItem } from "@/api/http/services/cancel-tab-item";
+import { closeTab, type PaymentMethod } from "@/api/http/services/close-tab";
 import { deliverTabItem } from "@/api/http/services/deliver-tab-item";
+import { requestBill } from "@/api/http/services/request-bill";
 import { sendToKitchen } from "@/api/http/services/send-to-kitchen";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
 
@@ -187,4 +189,104 @@ export async function deliverTabItemAction(tabId: string, itemId: string) {
 	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
 
 	return { success: true, title: "Item entregue!" };
+}
+
+const CLOSE_TAB_ERROR_MESSAGES: Record<string, string> = {
+	TAB_HAS_PENDING_ITEMS:
+		"Ainda há itens não entregues. Entregue ou cancele antes de fechar a conta.",
+	TAB_NOT_OPEN: "Esta comanda já foi fechada ou recebeu itens novos.",
+	TAB_NOT_FOUND: "Comanda não encontrada.",
+	CASH_RECEIVED_AMOUNT_REQUIRED: "Informe o valor recebido em dinheiro.",
+	INSUFFICIENT_CASH_AMOUNT: "O valor recebido não cobre o total da conta.",
+	FORBIDDEN: "Você não tem permissão para fechar contas.",
+};
+
+export async function closeTabAction(
+	tabId: string,
+	method: PaymentMethod,
+	receivedInCents?: number
+) {
+	// biome-ignore lint/style/noNonNullAssertion: always comes as string
+	const currentRestaurant = (await getCurrentRestaurant())!;
+
+	try {
+		const { payment } = await closeTab({
+			restaurant: currentRestaurant,
+			tabId,
+			method,
+			receivedInCents,
+		});
+
+		revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
+		revalidateTag(`${currentRestaurant}/tables`, "max");
+
+		return { success: true as const, title: "Conta fechada!", payment };
+	} catch (error) {
+		// Refresh either way: the tab may have been closed elsewhere.
+		revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
+
+		if (error instanceof HTTPError) {
+			const data = (error.data ?? {}) as {
+				message?: string;
+				title?: string | null;
+			};
+
+			return {
+				success: false as const,
+				title:
+					(data.message && CLOSE_TAB_ERROR_MESSAGES[data.message]) ||
+					data.title ||
+					"Erro ao fechar a conta.",
+			};
+		}
+
+		return {
+			success: false as const,
+			title: "Erro inesperado. Tente novamente em alguns instantes.",
+		};
+	}
+}
+
+const REQUEST_BILL_ERROR_MESSAGES: Record<string, string> = {
+	TABLE_NOT_OCCUPIED: "A conta desta mesa já foi pedida.",
+	TAB_NOT_OPEN: "Esta comanda já foi fechada.",
+	TAB_NOT_FOUND: "Comanda não encontrada.",
+	FORBIDDEN: "Você não tem permissão para pedir a conta.",
+};
+
+export async function requestBillAction(tabId: string) {
+	// biome-ignore lint/style/noNonNullAssertion: always comes as string
+	const currentRestaurant = (await getCurrentRestaurant())!;
+
+	try {
+		await requestBill({ restaurant: currentRestaurant, tabId });
+	} catch (error) {
+		// Refresh either way: the table may have changed elsewhere.
+		revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
+
+		if (error instanceof HTTPError) {
+			const data = (error.data ?? {}) as {
+				message?: string;
+				title?: string | null;
+			};
+
+			return {
+				success: false,
+				title:
+					(data.message && REQUEST_BILL_ERROR_MESSAGES[data.message]) ||
+					data.title ||
+					"Erro ao pedir a conta.",
+			};
+		}
+
+		return {
+			success: false,
+			title: "Erro inesperado. Tente novamente em alguns instantes.",
+		};
+	}
+
+	revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
+	revalidateTag(`${currentRestaurant}/tables`, "max");
+
+	return { success: true, title: "Conta pedida!" };
 }

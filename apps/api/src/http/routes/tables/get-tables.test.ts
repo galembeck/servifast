@@ -107,9 +107,12 @@ describe("GET /restaurants/:slug/tables", () => {
 		});
 	});
 
-	it("returns tables list for WAITER", async () => {
+	it.each([
+		"WAITER",
+		"CASHIER",
+	] as const)("returns tables list for %s", async (role) => {
 		const userId = faker.string.uuid();
-		const { restaurant } = mockMembership(userId, "WAITER");
+		const { restaurant } = mockMembership(userId, role);
 		const token = signToken(app, userId);
 
 		prismaMock.table.findMany.mockResolvedValue([]);
@@ -123,9 +126,9 @@ describe("GET /restaurants/:slug/tables", () => {
 		expect(response.statusCode).toBe(200);
 	});
 
-	it("returns 401 UNAUTHORIZED when user is CASHIER", async () => {
+	it("returns 401 UNAUTHORIZED when user is KITCHEN", async () => {
 		const userId = faker.string.uuid();
-		const { restaurant } = mockMembership(userId, "CASHIER");
+		const { restaurant } = mockMembership(userId, "KITCHEN");
 		const token = signToken(app, userId);
 
 		const response = await app.inject({

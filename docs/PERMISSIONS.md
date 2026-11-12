@@ -70,8 +70,10 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 | Delete member            | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | Manage orders            | ✅    | ✅      | ✅¹    | ✅²     | ✅²     | ❌      | ❌        |
 | View orders               | ✅    | ✅      | ✅     | ✅      | ✅      | ✅      | ❌        |
+| Request bill (table → Conta) | ✅  | ✅      | ✅     | ❌      | ❌      | ❌      | ❌        |
+| Close tab (checkout)⁴     | ✅    | ✅      | ❌     | ✅      | ❌      | ❌      | ❌        |
 | Force-cancel order item³  | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
-| Manage tables            | ✅    | ✅      | ✅²    | ❌      | ❌      | ❌      | ❌        |
+| Manage tables            | ✅    | ✅      | ✅²    | ✅⁵     | ❌      | ❌      | ❌        |
 | Manage menu               | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | View menu                 | ✅    | ✅      | ✅     | ❌      | ✅      | ❌      | ❌        |
 | Manage shift/register     | ✅    | ✅      | ❌     | ✅      | ❌      | ❌      | ❌        |
@@ -84,6 +86,10 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 > ¹ WAITER can create/view/update orders (not delete). ² CASHIER/KITCHEN can view/update orders but not create; WAITER can view/update tables but not delete.
 >
 > ³ Items already sent to the kitchen can't be cancelled normally. OWNER/MANAGER (`force_cancel` on `Order`) can still cancel them by sending `{ "force": true }`; the UI labels this as a "cancelamento forçado".
+>
+> ⁴ `close` on `Order`: registers the payment (cash, credit/debit card or PIX), closes the tab and frees the table — `POST /restaurants/:slug/tabs/:tabId/close`.
+>
+> ⁵ CASHIER can only view tables (`get` on `Table`), to find the tab to close.
 >
 > \* Projects are a leftover from the original SaaS template's multi-tenancy layer, not part of the restaurant domain — only OWNER can touch them via `manage all`.
 

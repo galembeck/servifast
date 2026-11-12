@@ -31,6 +31,10 @@ interface GetTabResponse {
 		openedAt: string;
 		closedAt: string | null;
 		tableId: string;
+		table: {
+			number: number;
+			status: "FREE" | "OCCUPIED" | "BILL_REQUESTED";
+		};
 		items: TabItem[];
 	};
 }

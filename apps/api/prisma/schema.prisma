@@ -22,6 +22,7 @@ model User {
   invites            Invite[]
   member_on          Member[]
   owns_restaurants Restaurant[]
+  payments         Payment[]
 
   @@map("users")
 }
@@ -106,6 +107,7 @@ model Restaurant {
   expenses       Expense[]
   orderItems     OrderItem[]
   kdsEvents      KdsEvent[]
+  payments       Payment[]
 
   @@map("restaurants")
 }
@@ -154,6 +156,7 @@ model Tab {
 
   items     OrderItem[]
   kdsEvents KdsEvent[]
+  payment   Payment?
 
   @@index([tableId, closedAt])
   @@map("tabs")
@@ -262,4 +265,35 @@ model Expense {
   restaurantId String     @map("restaurant_id")
 
   @@map("expenses")
+}
+
+enum PaymentMethod {
+  CASH
+  CREDIT_CARD
+  DEBIT_CARD
+  PIX
+
+  @@map("payment_method")
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  method          PaymentMethod
+  amountInCents   Int           @map("amount_in_cents")
+  receivedInCents Int?          @map("received_in_cents")
+  changeInCents   Int?          @map("change_in_cents")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tab   Tab    @relation(fields: [tabId], references: [id], onDelete: Cascade)
+  tabId String @unique @map("tab_id")
+
+  paidBy   User   @relation(fields: [paidById], references: [id])
+  paidById String @map("paid_by_id")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  @@index([restaurantId, createdAt])
+  @@map("payments")
 }

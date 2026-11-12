@@ -3,6 +3,7 @@ import type { BusinessException } from "./business/business";
 import type { InviteException } from "./invite";
 import type { KdsException } from "./kds";
 import type { MenuException } from "./menu";
+import type { PaymentException } from "./payment";
 import type { RestaurantException } from "./restaurant";
 import type { TabException } from "./tab";
 import type { TableException } from "./table";
@@ -17,4 +18,5 @@ export type AppException =
 	| TableException
 	| TabException
 	| MenuException
-	| KdsException;
+	| KdsException
+	| PaymentException;

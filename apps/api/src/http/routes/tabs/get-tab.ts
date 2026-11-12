@@ -36,6 +36,10 @@ export async function getTabRoute(app: FastifyInstance) {
 								openedAt: z.date(),
 								closedAt: z.date().nullable(),
 								tableId: z.uuid(),
+								table: z.object({
+									number: z.number(),
+									status: z.enum(["FREE", "OCCUPIED", "BILL_REQUESTED"]),
+								}),
 								items: z.array(
 									z.object({
 										id: z.uuid(),
@@ -84,6 +88,7 @@ export async function getTabRoute(app: FastifyInstance) {
 				const tab = await prisma.tab.findUnique({
 					where: { id: tabId, restaurantId: restaurant.id },
 					include: {
+						table: { select: { number: true, status: true } },
 						items: {
 							orderBy: { createdAt: "asc" },
 							include: {

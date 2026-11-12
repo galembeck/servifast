@@ -27,6 +27,7 @@ function makeTab(restaurantId: string, tabId = faker.string.uuid()) {
 		closedAt: null,
 		createdAt: new Date(),
 		tableId: faker.string.uuid(),
+		table: { number: 3, status: "OCCUPIED" },
 		restaurantId,
 		items: [
 			{

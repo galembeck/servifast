@@ -38,7 +38,8 @@ export const permissions: Record<Role, PermissionsByRole> = {
 	},
 
 	CASHIER(_, { can }) {
-		can(["get", "update"], "Order");
+		can(["get", "update", "close"], "Order");
+		can("get", "Table");
 		can("manage", "Shift");
 		can(["get", "create"], "Billing");
 	},

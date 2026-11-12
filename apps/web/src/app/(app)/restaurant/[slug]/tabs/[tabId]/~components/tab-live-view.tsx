@@ -5,16 +5,21 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 import { getTab, type Tab } from "@/api/http/services/get-tab";
 import { OfflineIndicator } from "@/components/offline-indicator";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useLiveQuery } from "@/hooks/use-live-query";
 import { AddTabItemSheet } from "./add-tab-item-sheet";
+import { CloseTabDialog } from "./close-tab-dialog";
+import { RequestBillButton } from "./request-bill-button";
 import { SendToKitchenButton } from "./send-to-kitchen-button";
 import { TabItemsList } from "./tab-items-list";
 
 interface TabLiveViewProps {
+	canCloseTab: boolean;
 	canCreateOrders: boolean;
 	canDeliverOrders: boolean;
 	canForceCancelOrders: boolean;
+	canRequestBill: boolean;
 	canUpdateOrders: boolean;
 	currentRestaurant: string;
 	menuItems: ComponentProps<typeof AddTabItemSheet>["menuItems"];
@@ -23,9 +28,11 @@ interface TabLiveViewProps {
 }
 
 export function TabLiveView({
+	canCloseTab,
 	canCreateOrders,
 	canDeliverOrders,
 	canForceCancelOrders,
+	canRequestBill,
 	canUpdateOrders,
 	currentRestaurant,
 	menuItems,
@@ -44,6 +51,10 @@ export function TabLiveView({
 	const canManageOrders = canUpdateOrders && isOpen;
 	const canForceCancelItems = canForceCancelOrders && isOpen;
 	const canDeliverItems = canDeliverOrders && isOpen;
+	const canCloseThisTab = canCloseTab && isOpen;
+	const isBillRequested = tab.table.status === "BILL_REQUESTED";
+	const canRequestThisBill =
+		canRequestBill && isOpen && tab.table.status === "OCCUPIED";
 
 	const pendingItemsCount = tab.items.filter(
 		(item) => item.status === "RECEIVED" && item.sentToKitchenAt === null
@@ -60,13 +71,21 @@ export function TabLiveView({
 				</Button>
 
 				<div>
-					<h1 className="font-semibold text-2xl">Comanda</h1>
+					<h1 className="flex items-center gap-2 font-semibold text-2xl">
+						Comanda · Mesa {tab.table.number}
+						{isOpen && isBillRequested && (
+							<Badge className="bg-amber-500 text-white">Conta pedida</Badge>
+						)}
+					</h1>
 					{tab.customerName && (
 						<p className="text-muted-foreground text-sm">{tab.customerName}</p>
 					)}
 				</div>
 
-				{(canAddItems || canManageOrders) && (
+				{(canAddItems ||
+					canManageOrders ||
+					canRequestThisBill ||
+					canCloseThisTab) && (
 					<div className="ml-auto flex items-center gap-2">
 						{canManageOrders && (
 							<SendToKitchenButton
@@ -81,11 +100,21 @@ export function TabLiveView({
 								tabId={tab.id}
 							/>
 						)}
+						{canRequestThisBill && <RequestBillButton tabId={tab.id} />}
+						{canCloseThisTab && (
+							<CloseTabDialog items={tab.items} slug={slug} tabId={tab.id} />
+						)}
 					</div>
 				)}
 			</div>
 
 			{isOffline && <OfflineIndicator />}
+
+			{!isOpen && (
+				<p className="rounded-md border bg-muted px-4 py-3 text-muted-foreground text-sm">
+					Esta comanda foi encerrada.
+				</p>
+			)}
 
 			<TabItemsList
 				canCancelItems={canManageOrders}
