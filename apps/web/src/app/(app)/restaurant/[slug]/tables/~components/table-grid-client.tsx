@@ -34,8 +34,38 @@ interface Table {
 	currentTabId: string | null;
 	id: string;
 	number: number;
+	readyItemsCount: number;
 	seatsCount: number;
 	status: TableStatus;
+}
+
+function ReadyItemsBanner({ tables }: { tables: Table[] }) {
+	const tablesWithReadyItems = tables.filter(
+		(table) => table.readyItemsCount > 0
+	);
+
+	if (tablesWithReadyItems.length === 0) {
+		return null;
+	}
+
+	const tableNumbers = tablesWithReadyItems
+		.map((table) => table.number)
+		.join(", ");
+	const isSingleTable = tablesWithReadyItems.length === 1;
+
+	return (
+		<div
+			aria-live="polite"
+			className="flex items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm"
+			role="status"
+		>
+			<span aria-hidden="true">🔔</span>
+			<span>
+				Itens prontos para entregar {isSingleTable ? "na mesa" : "nas mesas"}{" "}
+				<strong>{tableNumbers}</strong>
+			</span>
+		</div>
+	);
 }
 
 function StatusLegend({ tables }: { tables: Table[] }) {
@@ -100,7 +130,7 @@ export function TableGridClient({
 			return;
 		}
 
-		if (table.status === "OCCUPIED" && table.currentTabId) {
+		if (table.currentTabId) {
 			router.push(`/restaurant/${slug}/tabs/${table.currentTabId}`);
 		}
 	}
@@ -127,12 +157,14 @@ export function TableGridClient({
 				{isOffline && <OfflineIndicator />}
 			</div>
 
+			<ReadyItemsBanner tables={tables} />
+
 			<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
 				{tables.map((table) => {
 					const status = STATUS_CONFIG[table.status];
 					const isClickable =
 						(canOpenTab && table.status === "FREE") ||
-						(table.status === "OCCUPIED" && table.currentTabId !== null);
+						(table.status !== "FREE" && table.currentTabId !== null);
 
 					return (
 						<Card
@@ -161,7 +193,25 @@ export function TableGridClient({
 									Mesa
 								</span>
 
-								<span className={`size-2.5 rounded-full ${status.dot}`} />
+								<div className="flex items-center gap-2">
+									{table.readyItemsCount > 0 && (
+										<span
+											className="flex animate-pulse items-center gap-1 rounded-full bg-amber-500 px-2 py-0.5 font-semibold text-white text-xs"
+											title={`${table.readyItemsCount} ${table.readyItemsCount === 1 ? "item pronto" : "itens prontos"} para entregar`}
+										>
+											<span aria-hidden="true">🔔</span>
+											{table.readyItemsCount}
+											<span className="sr-only">
+												{table.readyItemsCount === 1
+													? "item pronto"
+													: "itens prontos"}{" "}
+												para entregar
+											</span>
+										</span>
+									)}
+
+									<span className={`size-2.5 rounded-full ${status.dot}`} />
+								</div>
 							</CardHeader>
 
 							<CardContent className="space-y-1">

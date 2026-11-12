@@ -63,6 +63,50 @@ describe("GET /restaurants/:slug/tables", () => {
 		});
 	});
 
+	it("returns the number of READY items of the open tab", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "WAITER");
+		const token = signToken(app, userId);
+		const tabId = faker.string.uuid();
+
+		prismaMock.table.findMany.mockResolvedValue([
+			{
+				id: faker.string.uuid(),
+				number: 1,
+				positionReference: null,
+				seatsCount: 4,
+				observations: null,
+				status: "OCCUPIED",
+				occupiedSeats: 2,
+				tabs: [{ id: tabId, _count: { items: 3 } }],
+			},
+			{
+				id: faker.string.uuid(),
+				number: 2,
+				positionReference: null,
+				seatsCount: 2,
+				observations: null,
+				status: "FREE",
+				occupiedSeats: 0,
+				tabs: [],
+			},
+		]);
+
+		const response = await app.inject({
+			method: "GET",
+			url: `/restaurants/${restaurant.slug}/tables`,
+			headers: { Authorization: `Bearer ${token}` },
+		});
+
+		expect(response.statusCode).toBe(200);
+		expect(JSON.parse(response.body)).toMatchObject({
+			tables: [
+				{ number: 1, currentTabId: tabId, readyItemsCount: 3 },
+				{ number: 2, currentTabId: null, readyItemsCount: 0 },
+			],
+		});
+	});
+
 	it("returns tables list for WAITER", async () => {
 		const userId = faker.string.uuid();
 		const { restaurant } = mockMembership(userId, "WAITER");

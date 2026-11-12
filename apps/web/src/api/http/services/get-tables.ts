@@ -12,6 +12,7 @@ interface GetTablesResponse {
 		status: TableStatus;
 		occupiedSeats: number;
 		currentTabId: string | null;
+		readyItemsCount: number;
 	}[];
 }
 

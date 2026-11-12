@@ -38,6 +38,7 @@ export async function getTablesRoute(app: FastifyInstance) {
 									status: tableStatusSchema,
 									occupiedSeats: z.number(),
 									currentTabId: z.string().uuid().nullable(),
+									readyItemsCount: z.number(),
 								})
 							),
 						}),
@@ -71,7 +72,12 @@ export async function getTablesRoute(app: FastifyInstance) {
 					include: {
 						tabs: {
 							where: { closedAt: null },
-							select: { id: true },
+							select: {
+								id: true,
+								_count: {
+									select: { items: { where: { status: "READY" } } },
+								},
+							},
 							take: 1,
 						},
 					},
@@ -80,6 +86,7 @@ export async function getTablesRoute(app: FastifyInstance) {
 				const tables = rows.map(({ tabs, ...table }) => ({
 					...table,
 					currentTabId: tabs[0]?.id ?? null,
+					readyItemsCount: tabs[0]?._count.items ?? 0,
 				}));
 
 				return { tables };
