@@ -50,6 +50,9 @@ docker compose up -d
 # Copy environment variables
 cp .env.example .env
 
+# Generate the Prisma client (not committed; rerun after pulling schema changes)
+pnpm --filter @repo/api db:generate
+
 # Run database migrations and seed
 pnpm --filter @repo/api db:migrate
 pnpm --filter @repo/api db:seed
