@@ -48,6 +48,7 @@ import { cancelTabItemRoute } from "@/http/routes/tabs/cancel-tab-item";
 import { closeTabRoute } from "@/http/routes/tabs/close-tab";
 import { deliverTabItemRoute } from "@/http/routes/tabs/deliver-tab-item";
 import { getTabRoute } from "@/http/routes/tabs/get-tab";
+import { getTabReceiptRoute } from "@/http/routes/tabs/get-tab-receipt";
 import { requestBillRoute } from "@/http/routes/tabs/request-bill";
 import { sendToKitchenRoute } from "@/http/routes/tabs/send-to-kitchen";
 import { createAccountRoute } from "@/http/routes/user/create-account";
@@ -101,6 +102,7 @@ export async function buildApp() {
 	await app.register(closeTabRoute);
 	await app.register(requestBillRoute);
 	await app.register(getTableBillRoute);
+	await app.register(getTabReceiptRoute);
 	await app.register(sendToKitchenRoute);
 	await app.register(createMenuCategoryRoute);
 	await app.register(getMenuCategoriesRoute);

@@ -9,7 +9,6 @@ import {
 	Receipt,
 	Wallet,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { PaymentMethod } from "@/api/http/services/close-tab";
@@ -96,12 +95,10 @@ function suggestCashAmounts(totalInCents: number) {
 
 interface CloseTabDialogProps {
 	items: TabItem[];
-	slug: string;
 	tabId: string;
 }
 
-export function CloseTabDialog({ items, slug, tabId }: CloseTabDialogProps) {
-	const router = useRouter();
+export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 	const receivedInputId = useId();
 	const [open, setOpen] = useState(false);
 	const [method, setMethod] = useState<PaymentMethod | null>(null);
@@ -164,8 +161,9 @@ export function CloseTabDialog({ items, slug, tabId }: CloseTabDialogProps) {
 						? "A mesa foi liberada."
 						: `Troco: ${formatPrice(change)}. A mesa foi liberada.`,
 			});
+			// The tab screen switches to its closed state, which offers the
+			// receipt and the way back to the tables.
 			setOpen(false);
-			router.push(`/restaurant/${slug}/tables`);
 		});
 	}
 

@@ -7,17 +7,10 @@ import { z } from "zod";
 import { AuthException } from "@/http/_errors/exceptions/auth";
 import { TableException } from "@/http/_errors/exceptions/table";
 import { auth } from "@/http/middlewares/auth";
+import { groupBillItems } from "@/lib/bill";
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError } from "../_errors/forbidden-error";
 import { NotFoundError } from "../_errors/not-found-error";
-
-interface BillLine {
-	menuItemId: string;
-	name: string;
-	quantity: number;
-	totalInCents: number;
-	unitPriceInCents: number;
-}
 
 export async function getTableBillRoute(app: FastifyInstance) {
 	app
@@ -133,46 +126,24 @@ export async function getTableBillRoute(app: FastifyInstance) {
 				}
 
 				const { items, ...tab } = openTab;
-				const lines = new Map<string, BillLine>();
+				const billableItems: typeof items = [];
 				let cancelledItemsCount = 0;
 				let unconfirmedItemsCount = 0;
 
 				for (const item of items) {
 					if (item.status === "CANCELLED") {
 						cancelledItemsCount += 1;
-						continue;
-					}
-
-					// Items still in the waiter's draft were never confirmed (sent to
-					// the kitchen), so they are not part of the bill yet.
-					if (item.sentToKitchenAt === null) {
+					} else if (item.sentToKitchenAt === null) {
+						// Items still in the waiter's draft were never confirmed (sent to
+						// the kitchen), so they are not part of the bill yet.
 						unconfirmedItemsCount += 1;
-						continue;
-					}
-
-					const key = `${item.menuItem.id}:${item.unitPriceInCents}`;
-					const line = lines.get(key);
-					const itemTotal = item.quantity * item.unitPriceInCents;
-
-					if (line) {
-						line.quantity += item.quantity;
-						line.totalInCents += itemTotal;
 					} else {
-						lines.set(key, {
-							menuItemId: item.menuItem.id,
-							name: item.menuItem.name,
-							quantity: item.quantity,
-							unitPriceInCents: item.unitPriceInCents,
-							totalInCents: itemTotal,
-						});
+						billableItems.push(item);
 					}
 				}
 
-				const billItems = [...lines.values()];
-				const subtotalInCents = billItems.reduce(
-					(total, line) => total + line.totalInCents,
-					0
-				);
+				const { lines: billItems, subtotalInCents } =
+					groupBillItems(billableItems);
 
 				return {
 					bill: {

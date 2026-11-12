@@ -55,6 +55,7 @@ import { cancelTabItemRoute } from "./http/routes/tabs/cancel-tab-item";
 import { closeTabRoute } from "./http/routes/tabs/close-tab";
 import { deliverTabItemRoute } from "./http/routes/tabs/deliver-tab-item";
 import { getTabRoute } from "./http/routes/tabs/get-tab";
+import { getTabReceiptRoute } from "./http/routes/tabs/get-tab-receipt";
 import { requestBillRoute } from "./http/routes/tabs/request-bill";
 import { sendToKitchenRoute } from "./http/routes/tabs/send-to-kitchen";
 import { createAccountRoute } from "./http/routes/user/create-account";
@@ -155,6 +156,7 @@ app.register(deliverTabItemRoute);
 app.register(closeTabRoute);
 app.register(requestBillRoute);
 app.register(getTableBillRoute);
+app.register(getTabReceiptRoute);
 app.register(sendToKitchenRoute);
 
 app.register(createMenuCategoryRoute);

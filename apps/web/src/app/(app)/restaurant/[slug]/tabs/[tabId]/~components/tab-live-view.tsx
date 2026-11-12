@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ScrollText } from "lucide-react";
+import { ArrowLeft, Printer, ScrollText } from "lucide-react";
 import Link from "next/link";
 import { type ComponentProps, useState } from "react";
 import { getTab, type Tab } from "@/api/http/services/get-tab";
@@ -118,7 +118,7 @@ export function TabLiveView({
 						)}
 						{canRequestThisBill && <RequestBillButton tabId={tab.id} />}
 						{canCloseThisTab && (
-							<CloseTabDialog items={tab.items} slug={slug} tabId={tab.id} />
+							<CloseTabDialog items={tab.items} tabId={tab.id} />
 						)}
 					</div>
 				)}
@@ -127,9 +127,28 @@ export function TabLiveView({
 			{isOffline && <OfflineIndicator />}
 
 			{!isOpen && (
-				<p className="rounded-md border bg-muted px-4 py-3 text-muted-foreground text-sm">
-					Esta comanda foi encerrada.
-				</p>
+				<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted px-4 py-3">
+					<p className="text-muted-foreground text-sm">
+						Esta comanda foi encerrada.
+					</p>
+					<div className="flex flex-wrap gap-2">
+						{canCloseTab && (
+							<Button asChild>
+								<Link
+									href={`/restaurant/${slug}/tabs/${tab.id}/receipt`}
+									rel="noopener"
+									target="_blank"
+								>
+									<Printer className="mr-2 size-4" />
+									Imprimir comprovante
+								</Link>
+							</Button>
+						)}
+						<Button asChild variant="outline">
+							<Link href={`/restaurant/${slug}/tables`}>Voltar às mesas</Link>
+						</Button>
+					</div>
+				</div>
 			)}
 
 			{canViewThisBill && (
