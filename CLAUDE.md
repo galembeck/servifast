@@ -125,7 +125,7 @@ Next.js App Router with `src/` directory layout.
 
 Built on CASL. `defineAbilityFor(user)` returns an `AppAbility` instance based on the user's role. Permission subjects: `Restaurant`, `User`, `Invite`, `Menu`, `Order`, `Table`, `Shift`, `Billing`.
 
-Use `ability()` from `auth-provider.ts` in Server Components to gate UI. `Order`, `Table`, `Shift` subjects are defined ahead of their feature routes — no DB models exist yet.
+Use `ability()` from `auth-provider.ts` in Server Components to gate UI. `Shift` gates the cash register (`/restaurants/:slug/cash-register/*`, models `CashRegisterSession`/`CashRegisterTransaction`): movements are append-only — the migration adds a trigger rejecting UPDATEs on `cash_register_transactions`, a trigger freezing closed sessions, and a partial unique index allowing one open register per restaurant.
 
 Owner-level restriction: only the restaurant's `ownerId` may call `transfer_ownership` or `update` on `Restaurant`, even for users with the OWNER role.
 

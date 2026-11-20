@@ -24,6 +24,10 @@ model User {
   owns_restaurants Restaurant[]
   payments         Payment[]
 
+  openedCashRegisterSessions CashRegisterSession[]     @relation("CashRegisterOpenedBy")
+  closedCashRegisterSessions CashRegisterSession[]     @relation("CashRegisterClosedBy")
+  cashRegisterTransactions   CashRegisterTransaction[]
+
   @@map("users")
 }
 
@@ -108,6 +112,9 @@ model Restaurant {
   orderItems     OrderItem[]
   kdsEvents      KdsEvent[]
   payments       Payment[]
+
+  cashRegisterSessions     CashRegisterSession[]
+  cashRegisterTransactions CashRegisterTransaction[]
 
   @@map("restaurants")
 }
@@ -296,4 +303,63 @@ model Payment {
 
   @@index([restaurantId, createdAt])
   @@map("payments")
+}
+
+/// One daily cash-register cycle. Only one session per restaurant may be open
+/// at a time (partial unique index in the migration), and a closed session is
+/// immutable (enforced by a database trigger).
+model CashRegisterSession {
+  id                    String    @id @default(uuid())
+  openingAmountInCents  Int       @map("opening_amount_in_cents")
+  openedAt              DateTime  @default(now()) @map("opened_at")
+  closedAt              DateTime? @map("closed_at")
+  countedAmountInCents  Int?      @map("counted_amount_in_cents")
+  expectedAmountInCents Int?      @map("expected_amount_in_cents")
+  differenceInCents     Int?      @map("difference_in_cents")
+
+  openedBy   User   @relation("CashRegisterOpenedBy", fields: [openedById], references: [id])
+  openedById String @map("opened_by_id")
+
+  closedBy   User?   @relation("CashRegisterClosedBy", fields: [closedById], references: [id])
+  closedById String? @map("closed_by_id")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  transactions CashRegisterTransaction[]
+
+  @@index([restaurantId, openedAt])
+  @@map("cash_register_sessions")
+}
+
+enum CashRegisterTransactionType {
+  OPENING
+  SUPPLY
+  WITHDRAWAL
+  CLOSING
+
+  @@map("cash_register_transaction_type")
+}
+
+/// Append-only audit log of cash-register movements: UPDATEs are rejected by a
+/// database trigger (see the migration).
+model CashRegisterTransaction {
+  id            String                      @id @default(uuid())
+  type          CashRegisterTransactionType
+  amountInCents Int                         @map("amount_in_cents")
+  description   String?
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  session   CashRegisterSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sessionId String              @map("session_id")
+
+  operator   User   @relation(fields: [operatorId], references: [id])
+  operatorId String @map("operator_id")
+
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId String     @map("restaurant_id")
+
+  @@index([sessionId, createdAt])
+  @@map("cash_register_transactions")
 }

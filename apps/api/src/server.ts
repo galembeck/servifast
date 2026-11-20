@@ -20,6 +20,11 @@ import { requestPasswordRecoveryRoute } from "./http/routes/auth/request-passwor
 import { resetPasswordRoute } from "./http/routes/auth/reset-password";
 import { createExpenseRoute } from "./http/routes/billing/create-expense";
 import { getBillingRoute } from "./http/routes/billing/get-billing";
+import { closeCashRegisterRoute } from "./http/routes/cash-register/close-cash-register";
+import { createCashRegisterTransactionRoute } from "./http/routes/cash-register/create-cash-register-transaction";
+import { getCashRegisterRoute } from "./http/routes/cash-register/get-cash-register";
+import { getCashRegisterTransactionsRoute } from "./http/routes/cash-register/get-cash-register-transactions";
+import { openCashRegisterRoute } from "./http/routes/cash-register/open-cash-register";
 import { acceptInviteRoute } from "./http/routes/invites/accept-invite";
 import { createInviteRoute } from "./http/routes/invites/create-invite";
 import { getInviteRoute } from "./http/routes/invites/get-invite";
@@ -168,6 +173,12 @@ app.register(deleteMenuItemRoute);
 
 app.register(getBillingRoute);
 app.register(createExpenseRoute);
+
+app.register(getCashRegisterRoute);
+app.register(openCashRegisterRoute);
+app.register(createCashRegisterTransactionRoute);
+app.register(getCashRegisterTransactionsRoute);
+app.register(closeCashRegisterRoute);
 
 app.listen({ port: env.PORT, host: "0.0.0.0" }).then(() => {
 	console.log(`🚀 | HTTP server running at http://localhost:${env.PORT}`);

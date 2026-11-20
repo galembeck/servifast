@@ -97,6 +97,12 @@ The web app will be available at `http://localhost:3000`.
 - Create, update, and delete projects per restaurant
 - List all projects within a restaurant
 
+### Cash register
+- Open the day's cash register with an opening float
+- Record supplies (suprimento) and withdrawals (sangria) — a withdrawal can't exceed the cash in the drawer
+- Close with a blind count: the expected amount (float + supplies − withdrawals + cash sales) is only revealed after the count, along with the difference
+- Every movement is an immutable audit record identifying the operator
+
 ### Billing
 - View billing details: $20/project + $10/member (excluding billing role)
 
@@ -120,7 +126,7 @@ Roles: **Owner**, **Manager**, **Waiter**, **Cashier**, **Kitchen**, **Billing**
 > ⚠️ = allowed with conditions
 >
 > - Only the restaurant's **owner** (`ownerId`) may transfer ownership or update the restaurant, even as OWNER
-> - `Order`/`Table`/`Menu`/`Shift` are permission subjects defined ahead of their features — no routes/models exist for them yet
+> - `Shift` gates the cash register (open, supplies/withdrawals, close)
 > - `Project` is a leftover from the original SaaS template's multi-tenancy layer, not part of the restaurant domain — only OWNER can touch it via `manage all`; see `docs/PERMISSIONS.md` for the full breakdown
 
 ## Commands

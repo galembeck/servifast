@@ -13,6 +13,11 @@ import { requestPasswordRecoveryRoute } from "@/http/routes/auth/request-passwor
 import { resetPasswordRoute } from "@/http/routes/auth/reset-password";
 import { createExpenseRoute } from "@/http/routes/billing/create-expense";
 import { getBillingRoute } from "@/http/routes/billing/get-billing";
+import { closeCashRegisterRoute } from "@/http/routes/cash-register/close-cash-register";
+import { createCashRegisterTransactionRoute } from "@/http/routes/cash-register/create-cash-register-transaction";
+import { getCashRegisterRoute } from "@/http/routes/cash-register/get-cash-register";
+import { getCashRegisterTransactionsRoute } from "@/http/routes/cash-register/get-cash-register-transactions";
+import { openCashRegisterRoute } from "@/http/routes/cash-register/open-cash-register";
 import { acceptInviteRoute } from "@/http/routes/invites/accept-invite";
 import { createInviteRoute } from "@/http/routes/invites/create-invite";
 import { getInviteRoute } from "@/http/routes/invites/get-invite";
@@ -112,6 +117,11 @@ export async function buildApp() {
 	await app.register(deleteMenuItemRoute);
 	await app.register(getBillingRoute);
 	await app.register(createExpenseRoute);
+	await app.register(getCashRegisterRoute);
+	await app.register(openCashRegisterRoute);
+	await app.register(createCashRegisterTransactionRoute);
+	await app.register(getCashRegisterTransactionsRoute);
+	await app.register(closeCashRegisterRoute);
 
 	await app.ready();
 

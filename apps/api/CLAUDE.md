@@ -207,7 +207,7 @@ See `docs/PERMISSIONS.md` at the repo root for the full role/permission breakdow
 | WAITER / CASHIER / KITCHEN | — | — | — | get (CASHIER only) | — |
 | BILLING | — | — | — | manage all | — |
 
-`Order`, `Table`, `Menu`, `Shift` are also defined as CASL subjects (`packages/rbac/src/subjects/`) for WAITER/CASHIER/KITCHEN/MANAGER, but have no backing routes/models yet.
+`Order`, `Table`, `Menu`, `Shift` are also defined as CASL subjects (`packages/rbac/src/subjects/`) for WAITER/CASHIER/KITCHEN/MANAGER. `Shift` gates the cash-register routes (`src/http/routes/cash-register/`): `get` for reads, `manage` for open/movements/close (OWNER, MANAGER, CASHIER).
 
 ### Determining test cases from a route file
 

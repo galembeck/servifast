@@ -54,7 +54,7 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 - **BILLING** — manages billing/financial reporting; views orders for reconciliation.
 - **Anonymous** — no membership, no access.
 
-`Order`, `Table`, `Menu`, and `Shift` are defined as CASL subjects (`packages/rbac/src/subjects/`) but don't have backing Prisma models or routes yet — they're set up ahead of the actual order/table/menu features so permission checks are ready to wire in.
+`Order`, `Table`, `Menu`, and `Shift` are defined as CASL subjects (`packages/rbac/src/subjects/`). `Shift` backs the cash register (`CashRegisterSession`/`CashRegisterTransaction` models, `/restaurants/:slug/cash-register/*` routes): `get` to view the register and its movements, `manage` to open it, record supplies/withdrawals and close it.
 
 ### Permissions table
 
@@ -76,7 +76,7 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 | Manage tables            | ✅    | ✅      | ✅²    | ✅⁵     | ❌      | ❌      | ❌        |
 | Manage menu               | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | View menu                 | ✅    | ✅      | ✅     | ❌      | ✅      | ❌      | ❌        |
-| Manage shift/register     | ✅    | ✅      | ❌     | ✅      | ❌      | ❌      | ❌        |
+| Manage shift/register⁵    | ✅    | ✅      | ❌     | ✅      | ❌      | ❌      | ❌        |
 | Get billing details      | ✅    | ✅      | ❌     | ✅      | ❌      | ✅      | ❌        |
 | Manage billing            | ✅    | ❌      | ❌     | ❌      | ❌      | ✅      | ❌        |
 | List/manage projects\*   | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
@@ -88,6 +88,8 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 > ³ Items already sent to the kitchen can't be cancelled normally. OWNER/MANAGER (`force_cancel` on `Order`) can still cancel them by sending `{ "force": true }`; the UI labels this as a "cancelamento forçado".
 >
 > ⁴ `close` on `Order`: registers the payment (cash, credit/debit card or PIX), closes the tab and frees the table — `POST /restaurants/:slug/tabs/:tabId/close`.
+>
+> ⁵ `manage` on `Shift`: opens the cash register with the opening float, records supplies (suprimento) and withdrawals (sangria), and closes it with a blind count — `POST /restaurants/:slug/cash-register/{open,transactions,close}`. Every movement stores the operator and is immutable (UPDATEs are rejected by a database trigger).
 >
 > ⁵ CASHIER can only view tables (`get` on `Table`), to find the tab to close.
 >
