@@ -2,11 +2,9 @@
 
 import { HTTPError } from "ky";
 import { revalidateTag } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
-import {
-	type CashRegisterClosing,
-	closeCashRegister,
-} from "@/api/http/services/close-cash-register";
+import { closeCashRegister } from "@/api/http/services/close-cash-register";
 import { createCashRegisterTransaction } from "@/api/http/services/create-cash-register-transaction";
 import { openCashRegister } from "@/api/http/services/open-cash-register";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
@@ -151,31 +149,29 @@ export async function createCashMovementAction(data: FormData) {
 	};
 }
 
-type CloseCashRegisterResult =
-	| { success: true; closing: CashRegisterClosing }
-	| {
-			success: false;
-			title: string | null;
-			errors: Record<string, string[] | undefined> | null;
-	  };
+interface CloseCashRegisterError {
+	errors: Record<string, string[] | undefined> | null;
+	title: string | null;
+}
 
 /**
- * Closes the register with the blind count. It deliberately does NOT
- * revalidate the page: the dialog must stay mounted to show the
- * reconciliation, and `finishCashRegisterClosingAction` refreshes the screen
- * once the operator dismisses it.
+ * Closes the register with the blind count, then redirects to the closing
+ * summary (`?fechamento=<sessionId>`). Revalidating and redirecting in the same
+ * response avoids flashing the "open register" form, and the summary lives in
+ * the URL, so it stays on screen until the operator dismisses it.
  */
 export async function closeCashRegisterAction(
 	data: FormData
-): Promise<CloseCashRegisterResult> {
+): Promise<CloseCashRegisterError> {
 	const result = closeCashRegisterSchema.safeParse(Object.fromEntries(data));
 
 	if (!result.success) {
 		const errors = result.error.flatten().fieldErrors;
-		return { success: false, title: null, errors };
+		return { title: null, errors };
 	}
 
 	const currentRestaurant = await requireCurrentRestaurant();
+	let closedSessionId: string;
 
 	try {
 		const { session } = await closeCashRegister({
@@ -183,15 +179,17 @@ export async function closeCashRegisterAction(
 			countedAmountInCents: result.data.countedAmount,
 		});
 
-		return { success: true, closing: session };
+		closedSessionId = session.id;
 	} catch (error) {
+		revalidateTag(`${currentRestaurant}/cash-register`, "max");
 		const { title } = toErrorState(error, "Erro ao fechar o caixa.");
-		return { success: false, title, errors: null };
+		return { title, errors: null };
 	}
-}
-
-export async function finishCashRegisterClosingAction() {
-	const currentRestaurant = await requireCurrentRestaurant();
 
 	revalidateTag(`${currentRestaurant}/cash-register`, "max");
+
+	// redirect() throws, so it must stay outside the try/catch above.
+	redirect(
+		`/restaurant/${currentRestaurant}/cash-register?fechamento=${closedSessionId}`
+	);
 }
