@@ -11,6 +11,8 @@ interface GetMenuItemsResponse {
 		priceInCents: number;
 		/** Units on hand; null = stock not tracked. */
 		stockQuantity: number | null;
+		/** Low-stock alert threshold; null = no alert. */
+		minStockQuantity: number | null;
 	}[];
 }
 

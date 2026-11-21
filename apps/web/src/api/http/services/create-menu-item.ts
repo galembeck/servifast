@@ -4,6 +4,7 @@ interface CreateMenuItemRequest {
 	categoryId: string;
 	description: string | null;
 	image: File | null;
+	minStockQuantity?: number | null;
 	name: string;
 	price: number;
 	restaurant: string;
@@ -18,6 +19,7 @@ export async function createMenuItem({
 	categoryId,
 	image,
 	stockQuantity,
+	minStockQuantity,
 }: CreateMenuItemRequest) {
 	const formData = new FormData();
 
@@ -30,6 +32,13 @@ export async function createMenuItem({
 		formData.set(
 			"stockQuantity",
 			stockQuantity === null ? "" : String(stockQuantity)
+		);
+	}
+
+	if (minStockQuantity !== undefined) {
+		formData.set(
+			"minStockQuantity",
+			minStockQuantity === null ? "" : String(minStockQuantity)
 		);
 	}
 

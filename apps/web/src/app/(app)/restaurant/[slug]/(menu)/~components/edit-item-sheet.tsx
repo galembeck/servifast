@@ -36,6 +36,7 @@ interface EditItemSheetProps {
 		isAvailable: boolean;
 		name: string;
 		priceInCents: number;
+		minStockQuantity: number | null;
 		stockQuantity: StockQuantity;
 	};
 }
@@ -138,8 +139,9 @@ export function EditItemSheet({ categories, item }: EditItemSheetProps) {
 					</div>
 
 					<StockField
+						defaultMinValue={item.minStockQuantity}
 						defaultValue={item.stockQuantity}
-						error={errors?.stockQuantity?.[0]}
+						errors={errors}
 					/>
 
 					<div className="space-y-3">

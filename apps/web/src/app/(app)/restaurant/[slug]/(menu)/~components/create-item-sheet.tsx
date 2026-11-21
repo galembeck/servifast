@@ -111,7 +111,7 @@ export function CreateItemSheet({ categories }: CreateItemSheetProps) {
 						)}
 					</div>
 
-					<StockField error={errors?.stockQuantity?.[0]} />
+					<StockField errors={errors} />
 
 					<div className="space-y-3">
 						<Label htmlFor="categoryId">Categoria</Label>

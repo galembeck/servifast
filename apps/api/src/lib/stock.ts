@@ -1,11 +1,13 @@
 import { z } from "zod";
+import { MenuException } from "@/http/_errors/exceptions/menu";
 import { TabException } from "@/http/_errors/exceptions/tab";
+import { BadRequestError } from "@/http/routes/_errors/bad-request-error";
 import { ConflictError } from "@/http/routes/_errors/conflict-error";
 
 /**
- * Multipart field for a menu item's stock. An empty value means "do not track
- * stock" (null); a missing field is left undefined so updates keep the
- * current balance.
+ * Multipart field for a menu item's stock (or its minimum). An empty value
+ * means null (stock not tracked / no alert); a missing field is left
+ * undefined so updates keep the current value.
  */
 export const stockQuantityFieldSchema = z
 	.string()
@@ -26,13 +28,83 @@ export const stockQuantityFieldSchema = z
 		if (!Number.isInteger(quantity) || quantity < 0) {
 			ctx.addIssue({
 				code: "custom",
-				message: "Stock must be a whole number greater than or equal to 0.",
+				message: "Must be a whole number greater than or equal to 0.",
 			});
 			return z.NEVER;
 		}
 
 		return quantity;
 	});
+
+interface StockSettings {
+	minStockQuantity: number | null;
+	stockQuantity: number | null;
+}
+
+/**
+ * Final stock/minimum of a menu item after a create or update. Missing fields
+ * keep the current value; stopping stock tracking also clears the minimum.
+ * A minimum on an item that does not track stock is not allowed (RN01 needs a
+ * balance to compare): 400 MIN_STOCK_REQUIRES_TRACKING, nothing is written.
+ */
+export function resolveStockSettings(
+	input: {
+		minStockQuantity: number | null | undefined;
+		stockQuantity: number | null | undefined;
+	},
+	current: StockSettings = { stockQuantity: null, minStockQuantity: null }
+): StockSettings {
+	const stockQuantity =
+		input.stockQuantity === undefined
+			? current.stockQuantity
+			: input.stockQuantity;
+
+	let minStockQuantity = input.minStockQuantity;
+
+	if (minStockQuantity === undefined) {
+		minStockQuantity = stockQuantity === null ? null : current.minStockQuantity;
+	}
+
+	if (minStockQuantity !== null && stockQuantity === null) {
+		throw new BadRequestError(
+			"Minimum stock requires stock tracking.",
+			MenuException.MIN_STOCK_REQUIRES_TRACKING,
+			"Set the item's stock before setting a minimum stock."
+		);
+	}
+
+	return { stockQuantity, minStockQuantity };
+}
+
+/**
+ * Stock fields to write when updating a menu item. A missing balance is not
+ * written, so an edit never overwrites a balance decremented concurrently by
+ * a tab close; the minimum is written when sent or cleared with the stock.
+ */
+export function buildStockUpdate(
+	input: {
+		minStockQuantity: number | null | undefined;
+		stockQuantity: number | null | undefined;
+	},
+	current: {
+		minStockQuantity?: number | null;
+		stockQuantity?: number | null;
+	}
+) {
+	const { minStockQuantity } = resolveStockSettings(input, {
+		stockQuantity: current.stockQuantity ?? null,
+		minStockQuantity: current.minStockQuantity ?? null,
+	});
+	const shouldWriteMinStock =
+		input.minStockQuantity !== undefined || input.stockQuantity === null;
+
+	return {
+		...(input.stockQuantity === undefined
+			? {}
+			: { stockQuantity: input.stockQuantity }),
+		...(shouldWriteMinStock ? { minStockQuantity } : {}),
+	};
+}
 
 interface SoldItem {
 	menuItemId: string;

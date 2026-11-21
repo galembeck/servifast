@@ -54,6 +54,7 @@ import { getRestaurantRoute } from "./http/routes/restaurants/get-restaurant";
 import { getRestaurantsRoute } from "./http/routes/restaurants/get-restaurants";
 import { transferOwnershipRoute } from "./http/routes/restaurants/transfer-ownership";
 import { updateRestaurantRoute } from "./http/routes/restaurants/update-restaurant";
+import { getStockAlertsRoute } from "./http/routes/stock/get-stock-alerts";
 import { createTableRoute } from "./http/routes/tables/create-table";
 import { getTableBillRoute } from "./http/routes/tables/get-table-bill";
 import { getTablesRoute } from "./http/routes/tables/get-tables";
@@ -179,6 +180,7 @@ app.register(createExpenseRoute);
 
 app.register(getSalesReportRoute);
 app.register(getAverageTicketRoute);
+app.register(getStockAlertsRoute);
 app.register(getTopProductsRoute);
 
 app.register(getCashRegisterRoute);

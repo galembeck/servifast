@@ -12,7 +12,7 @@ import {
 	saveMenuItemImage,
 } from "@/lib/menu-item-image-storage";
 import { prisma } from "@/lib/prisma";
-import { stockQuantityFieldSchema } from "@/lib/stock";
+import { buildStockUpdate, stockQuantityFieldSchema } from "@/lib/stock";
 import { BadRequestError } from "../_errors/bad-request-error";
 import { UnauthorizedError } from "../_errors/unauthorized-error";
 
@@ -22,6 +22,7 @@ const menuItemFieldsSchema = z.object({
 	price: z.coerce.number().positive(),
 	categoryId: z.uuid(),
 	stockQuantity: stockQuantityFieldSchema,
+	minStockQuantity: stockQuantityFieldSchema,
 	isAvailable: z
 		.string()
 		.nullish()
@@ -39,7 +40,7 @@ export async function updateMenuItemRoute(app: FastifyInstance) {
 					tags: ["Menu"],
 					summary: "/restaurants/:slug/menu-items/:itemId",
 					description:
-						"Update a menu item of a restaurant. `stockQuantity`: units on hand; empty stops tracking stock, missing keeps the current balance.",
+						"Update a menu item of a restaurant. `stockQuantity`: units on hand; empty stops tracking stock, missing keeps the current balance. `minStockQuantity`: low-stock alert threshold (empty = no alert); only allowed when stock is tracked (400 MIN_STOCK_REQUIRES_TRACKING); stopping stock tracking clears it.",
 					security: [{ bearerAuth: [] }],
 					consumes: ["multipart/form-data"],
 					params: z.object({
@@ -95,7 +96,13 @@ export async function updateMenuItemRoute(app: FastifyInstance) {
 					categoryId,
 					isAvailable,
 					stockQuantity,
+					minStockQuantity,
 				} = menuItemFieldsSchema.parse(fields);
+
+				const stockUpdate = buildStockUpdate(
+					{ stockQuantity, minStockQuantity },
+					existingItem
+				);
 
 				const category = await prisma.menuCategory.findUnique({
 					where: { id: categoryId },
@@ -117,8 +124,7 @@ export async function updateMenuItemRoute(app: FastifyInstance) {
 						description,
 						priceInCents: Math.round(price * 100),
 						isAvailable,
-						// Missing field keeps the balance; empty stops tracking stock.
-						...(stockQuantity === undefined ? {} : { stockQuantity }),
+						...stockUpdate,
 						...(imageUrl ? { imageUrl } : {}),
 					},
 				});

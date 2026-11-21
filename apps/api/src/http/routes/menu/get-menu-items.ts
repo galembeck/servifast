@@ -44,6 +44,7 @@ export async function getMenuItemsRoute(app: FastifyInstance) {
 									categoryId: z.uuid(),
 									isAvailable: z.boolean(),
 									stockQuantity: z.number().int().nullable(),
+									minStockQuantity: z.number().int().nullable(),
 								})
 							),
 						}),

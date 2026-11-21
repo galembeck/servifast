@@ -23,6 +23,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
 		can("manage", "Table");
 		can("manage", "Menu");
 		can("manage", "Shift");
+		can("manage", "Stock");
 
 		can(["create", "get", "delete"], "Invite");
 

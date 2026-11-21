@@ -131,7 +131,16 @@ describe("PUT /restaurants/:slug/menu-items/:itemId", () => {
 		);
 	});
 
-	async function updateStock(fields: Record<string, string>) {
+	async function updateStock(
+		fields: Record<string, string>,
+		current: {
+			minStockQuantity: number | null;
+			stockQuantity: number | null;
+		} = {
+			stockQuantity: 20,
+			minStockQuantity: 5,
+		}
+	) {
 		const userId = faker.string.uuid();
 		const { restaurant } = mockMembership(userId, "OWNER");
 		const itemId = faker.string.uuid();
@@ -142,6 +151,7 @@ describe("PUT /restaurants/:slug/menu-items/:itemId", () => {
 			id: itemId,
 			restaurantId: restaurant.id,
 			imageUrl: null,
+			...current,
 		});
 		prismaMock.menuCategory.findUnique.mockResolvedValue({
 			id: categoryId,
@@ -194,6 +204,52 @@ describe("PUT /restaurants/:slug/menu-items/:itemId", () => {
 		expect(response.statusCode).toBe(204);
 		const data = prismaMock.menuItem.update.mock.calls[0]?.[0]?.data;
 		expect(data).not.toHaveProperty("stockQuantity");
+	});
+
+	it("sets the minimum stock", async () => {
+		const response = await updateStock({ minStockQuantity: "8" });
+
+		expect(response.statusCode).toBe(204);
+		expect(prismaMock.menuItem.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ minStockQuantity: 8 }),
+			})
+		);
+	});
+
+	it("keeps both stock and minimum when neither field is sent", async () => {
+		const response = await updateStock({});
+
+		expect(response.statusCode).toBe(204);
+		const data = prismaMock.menuItem.update.mock.calls[0]?.[0]?.data;
+		expect(data).not.toHaveProperty("minStockQuantity");
+	});
+
+	it("clears the minimum when stock tracking stops", async () => {
+		const response = await updateStock({ stockQuantity: "" });
+
+		expect(response.statusCode).toBe(204);
+		expect(prismaMock.menuItem.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					stockQuantity: null,
+					minStockQuantity: null,
+				}),
+			})
+		);
+	});
+
+	it("returns 400 MIN_STOCK_REQUIRES_TRACKING for a minimum on an untracked item", async () => {
+		const response = await updateStock(
+			{ minStockQuantity: "5" },
+			{ stockQuantity: null, minStockQuantity: null }
+		);
+
+		expect(response.statusCode).toBe(400);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "MIN_STOCK_REQUIRES_TRACKING",
+		});
+		expect(prismaMock.menuItem.update).not.toHaveBeenCalled();
 	});
 
 	it("returns 400 validation error for a negative stock", async () => {

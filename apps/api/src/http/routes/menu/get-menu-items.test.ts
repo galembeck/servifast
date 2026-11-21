@@ -50,6 +50,7 @@ describe("GET /restaurants/:slug/menu-items", () => {
 				categoryId,
 				isAvailable: true,
 				stockQuantity: 24,
+				minStockQuantity: 6,
 			},
 		]);
 

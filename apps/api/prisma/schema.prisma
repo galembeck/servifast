@@ -195,6 +195,9 @@ model MenuItem {
   /// Units on hand; null = stock not tracked (e.g. made-to-order dishes).
   /// Decremented 1:1 when a tab is closed. CHECK (>= 0) in the migration.
   stockQuantity Int?   @map("stock_quantity")
+  /// Low-stock threshold; null = no alert. Only set when stock is tracked
+  /// (CHECK in the migration). 0 < stock <= min = LOW, stock = 0 = CRITICAL.
+  minStockQuantity Int? @map("min_stock_quantity")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

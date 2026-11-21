@@ -78,6 +78,7 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 | View menu                 | ✅    | ✅      | ✅     | ❌      | ✅      | ❌      | ❌        |
 | Manage shift/register⁵    | ✅    | ✅      | ❌     | ✅      | ❌      | ❌      | ❌        |
 | View sales dashboard⁶     | ✅    | ❌      | ❌     | ❌      | ❌      | ✅      | ❌        |
+| View stock alerts⁷        | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | Get billing details      | ✅    | ✅      | ❌     | ✅      | ❌      | ✅      | ❌        |
 | Manage billing            | ✅    | ❌      | ❌     | ❌      | ❌      | ✅      | ❌        |
 | List/manage projects\*   | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
@@ -91,6 +92,8 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 > ⁴ `close` on `Order`: registers the payment (cash, credit/debit card or PIX), closes the tab and frees the table — `POST /restaurants/:slug/tabs/:tabId/close`.
 >
 > ⁶ `get` on `Report`: the sales dashboard — `GET /restaurants/:slug/reports/{sales,average-ticket,top-products}?period=today|week|month`. OWNER gets it through `manage all`; BILLING is granted `get` explicitly.
+>
+> ⁷ `get` on `Stock`: low-stock alerts — `GET /restaurants/:slug/stock/alerts?level=all|critical|low` (header bell and the "Estoque" page). OWNER gets it through `manage all`; MANAGER has `manage` on `Stock`. Stock and minimum are set on the menu item (`update` on `Menu`).
 >
 > ⁵ `manage` on `Shift`: opens the cash register with the opening float, records supplies (suprimento) and withdrawals (sangria), and closes it with a blind count — `POST /restaurants/:slug/cash-register/{open,transactions,close}`. Every movement stores the operator and is immutable (UPDATEs are rejected by a database trigger).
 >

@@ -123,13 +123,13 @@ Next.js App Router with `src/` directory layout.
 
 ### RBAC (`packages/rbac`)
 
-Built on CASL. `defineAbilityFor(user)` returns an `AppAbility` instance based on the user's role. Permission subjects: `Restaurant`, `User`, `Invite`, `Menu`, `Order`, `Table`, `Shift`, `Billing`, `Report`.
+Built on CASL. `defineAbilityFor(user)` returns an `AppAbility` instance based on the user's role. Permission subjects: `Restaurant`, `User`, `Invite`, `Menu`, `Order`, `Table`, `Shift`, `Billing`, `Report`, `Stock`.
 
 Use `ability()` from `auth-provider.ts` in Server Components to gate UI. `Shift` gates the cash register (`/restaurants/:slug/cash-register/*`, models `CashRegisterSession`/`CashRegisterTransaction`): movements are append-only — the migration adds a trigger rejecting UPDATEs on `cash_register_transactions`, a trigger freezing closed sessions, and a partial unique index allowing one open register per restaurant.
 
 `Report` gates the sales dashboard (`GET /restaurants/:slug/reports/{sales,average-ticket,top-products}`, OWNER + BILLING). The average ticket (revenue ÷ completed services, i.e. tabs with a payment) comes from one shared KPI query, so the dashboard card and the average-ticket report always match. Its SQL lives in `apps/api/src/lib/sales-report.ts` (raw parameterized SUM/COUNT/GROUP BY via `$queryRawUnsafe`); calendar periods and buckets are computed in `src/lib/sales-period.ts` in the America/Sao_Paulo zone.
 
-Stock: `MenuItem.stockQuantity` (nullable — null means the item doesn't track stock) is decremented 1:1 when a tab is closed, inside the `close-tab` transaction (`decrementStockForSale` in `apps/api/src/lib/stock.ts`, conditional `stock >= qty` updates). A shortage throws 409 `INSUFFICIENT_STOCK` and rolls back the payment/close; `add-tab-item` rejects 422 `ITEM_OUT_OF_STOCK` up front, and a CHECK constraint keeps the balance >= 0.
+Stock: `MenuItem.stockQuantity` (nullable — null means the item doesn't track stock) is decremented 1:1 when a tab is closed, inside the `close-tab` transaction (`decrementStockForSale` in `apps/api/src/lib/stock.ts`, conditional `stock >= qty` updates). A shortage throws 409 `INSUFFICIENT_STOCK` and rolls back the payment/close; `add-tab-item` rejects 422 `ITEM_OUT_OF_STOCK` up front, and a CHECK constraint keeps the balance >= 0. `MenuItem.minStockQuantity` (nullable, only allowed when stock is tracked — API 400 `MIN_STOCK_REQUIRES_TRACKING` + CHECK) drives the low-stock alerts: `GET /restaurants/:slug/stock/alerts` (`Stock` subject, OWNER + MANAGER) compares balance × minimum in SQL (`apps/api/src/lib/stock-alerts.ts`): stock 0 = CRITICAL, 0 < stock <= min = LOW.
 
 Owner-level restriction: only the restaurant's `ownerId` may call `transfer_ownership` or `update` on `Restaurant`, even for users with the OWNER role.
 

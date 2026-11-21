@@ -6,6 +6,7 @@ interface UpdateMenuItemRequest {
 	image: File | null;
 	isAvailable: boolean;
 	itemId: string;
+	minStockQuantity?: number | null;
 	name: string;
 	price: number;
 	restaurant: string;
@@ -22,6 +23,7 @@ export async function updateMenuItem({
 	isAvailable,
 	image,
 	stockQuantity,
+	minStockQuantity,
 }: UpdateMenuItemRequest) {
 	const formData = new FormData();
 
@@ -35,6 +37,13 @@ export async function updateMenuItem({
 		formData.set(
 			"stockQuantity",
 			stockQuantity === null ? "" : String(stockQuantity)
+		);
+	}
+
+	if (minStockQuantity !== undefined) {
+		formData.set(
+			"minStockQuantity",
+			minStockQuantity === null ? "" : String(minStockQuantity)
 		);
 	}
 

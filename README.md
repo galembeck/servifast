@@ -106,6 +106,7 @@ The web app will be available at `http://localhost:3000`.
 ### Stock
 - Each menu item may track units on hand (empty = not tracked, e.g. made-to-order dishes); the balance shows on the products screen
 - Closing a tab decrements the stock 1:1 with the units sold (cancelled items excluded), in the same transaction as the payment
+- Optional minimum stock per item: items at or below the minimum raise a yellow (low) alert, sold-out items a red (critical) one — shown in the header bell, on the "Estoque" page (filter by balance × minimum) and as badges on the menu (`GET /restaurants/:slug/stock/alerts`, OWNER + MANAGER)
 - Items without enough stock can't be added to a tab, and a tab can't be closed while a product lacks stock (409 `INSUFFICIENT_STOCK`, nothing is recorded); the balance never goes negative
 
 ### Cash register
