@@ -44,7 +44,9 @@ import { deleteMenuItemRoute } from "./http/routes/menu/delete-menu-item";
 import { getMenuCategoriesRoute } from "./http/routes/menu/get-menu-categories";
 import { getMenuItemsRoute } from "./http/routes/menu/get-menu-items";
 import { updateMenuItemRoute } from "./http/routes/menu/update-menu-item";
+import { getAverageTicketRoute } from "./http/routes/reports/get-average-ticket";
 import { getSalesReportRoute } from "./http/routes/reports/get-sales-report";
+import { getTopProductsRoute } from "./http/routes/reports/get-top-products";
 import { createRestaurantRoute } from "./http/routes/restaurants/create-restaurant";
 import { deleteRestaurantRoute } from "./http/routes/restaurants/delete-restaurant";
 import { getMembershipRoute } from "./http/routes/restaurants/get-membership";
@@ -176,6 +178,8 @@ app.register(getBillingRoute);
 app.register(createExpenseRoute);
 
 app.register(getSalesReportRoute);
+app.register(getAverageTicketRoute);
+app.register(getTopProductsRoute);
 
 app.register(getCashRegisterRoute);
 app.register(openCashRegisterRoute);

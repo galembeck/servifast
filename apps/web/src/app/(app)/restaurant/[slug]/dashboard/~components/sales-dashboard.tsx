@@ -1,6 +1,7 @@
 "use client";
 
 import { ReceiptText } from "lucide-react";
+import Link from "next/link";
 import {
 	getSalesReport,
 	type SalesPeriod,
@@ -151,8 +152,14 @@ export function SalesDashboard({
 					</Card>
 
 					<Card>
-						<CardHeader>
+						<CardHeader className="flex flex-row items-baseline justify-between gap-2">
 							<CardTitle>Mais vendidos</CardTitle>
+							<Link
+								className="text-muted-foreground text-xs underline-offset-4 hover:text-foreground hover:underline"
+								href={`/restaurant/${slug}/dashboard/products?period=${period}`}
+							>
+								Ver ranking completo →
+							</Link>
 						</CardHeader>
 						<CardContent>
 							{report.topItems.length === 0 ? (

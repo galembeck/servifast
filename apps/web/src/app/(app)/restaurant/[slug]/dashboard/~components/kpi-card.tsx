@@ -11,7 +11,13 @@ interface KpiCardProps {
 	previous: number;
 }
 
-function Delta({ current, previous }: { current: number; previous: number }) {
+export function Delta({
+	current,
+	previous,
+}: {
+	current: number;
+	previous: number;
+}) {
 	if (previous === 0) {
 		return (
 			<span className="inline-flex items-center gap-1 text-muted-foreground">

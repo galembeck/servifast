@@ -6,6 +6,7 @@ import {
 } from "./sales-period";
 
 const TOP_ITEMS_LIMIT = 5;
+export const TOP_PRODUCTS_LIMIT = 10;
 export const PAYMENT_METHODS = [
 	"CASH",
 	"CREDIT_CARD",
@@ -75,8 +76,55 @@ JOIN payments p ON p.tab_id = oi.tab_id
 JOIN menu_items mi ON mi.id = oi.menu_item_id
 WHERE ${IN_RANGE("p")} AND oi.status <> 'CANCELLED'
 GROUP BY mi.id, mi.name
-ORDER BY "quantity" DESC, "revenueInCents" DESC
+ORDER BY "quantity" DESC, "revenueInCents" DESC, mi.name ASC
 LIMIT ${TOP_ITEMS_LIMIT}`;
+
+/*
+ * Top products among completed services (tabs with a payment), cancelled
+ * items excluded. For each product: units, revenue, how many services ordered
+ * it and the average ticket of those services (each tab counted once).
+ */
+const TOP_PRODUCTS_SQL = `
+WITH sold AS (
+	SELECT
+		oi.menu_item_id,
+		oi.tab_id,
+		oi.quantity,
+		oi.quantity * oi.unit_price_in_cents AS revenue,
+		p.amount_in_cents AS tab_total
+	FROM order_items oi
+	JOIN payments p ON p.tab_id = oi.tab_id
+	WHERE ${IN_RANGE("p")} AND oi.status <> 'CANCELLED'
+),
+per_item AS (
+	SELECT
+		menu_item_id,
+		SUM(quantity) AS quantity,
+		SUM(revenue) AS revenue,
+		COUNT(DISTINCT tab_id) AS services
+	FROM sold
+	GROUP BY menu_item_id
+),
+ticket_with_item AS (
+	SELECT menu_item_id, ROUND(AVG(tab_total)) AS average_ticket
+	FROM (SELECT DISTINCT menu_item_id, tab_id, tab_total FROM sold) AS tabs
+	GROUP BY menu_item_id
+)
+SELECT
+	mi.id AS "menuItemId",
+	mi.name AS "name",
+	mc.name AS "categoryName",
+	pi.quantity::int AS "quantity",
+	pi.revenue::bigint AS "revenueInCents",
+	pi.services::int AS "servicesCount",
+	tw.average_ticket::bigint AS "averageTicketWithItemInCents",
+	(SELECT COALESCE(SUM(quantity), 0) FROM sold)::int AS "totalUnits"
+FROM per_item pi
+JOIN menu_items mi ON mi.id = pi.menu_item_id
+LEFT JOIN menu_categories mc ON mc.id = mi.category_id
+JOIN ticket_with_item tw ON tw.menu_item_id = pi.menu_item_id
+ORDER BY pi.quantity DESC, pi.revenue DESC, mi.name ASC
+LIMIT ${TOP_PRODUCTS_LIMIT}`;
 
 /** SUM(...)::bigint comes back as BigInt (or a string); cents fit in a number. */
 type Numeric = bigint | number | string;
@@ -106,6 +154,30 @@ interface TopItemRow {
 	revenueInCents: Numeric;
 }
 
+interface TopProductRow {
+	averageTicketWithItemInCents: Numeric;
+	categoryName: string | null;
+	menuItemId: string;
+	name: string;
+	quantity: number;
+	revenueInCents: Numeric;
+	servicesCount: number;
+	totalUnits: number;
+}
+
+/**
+ * RN01: average ticket = consolidated revenue / completed services. A period
+ * without completed services has no ticket: 0 instead of a division by zero.
+ */
+export function computeAverageTicket(
+	revenueInCents: number,
+	completedServices: number
+) {
+	return completedServices === 0
+		? 0
+		: Math.round(revenueInCents / completedServices);
+}
+
 function toKpis(row: KpiRow | undefined) {
 	const revenueInCents = Number(row?.revenueInCents ?? 0);
 	const salesCount = Number(row?.salesCount ?? 0);
@@ -113,8 +185,7 @@ function toKpis(row: KpiRow | undefined) {
 	return {
 		revenueInCents,
 		salesCount,
-		averageTicketInCents:
-			salesCount === 0 ? 0 : Math.round(revenueInCents / salesCount),
+		averageTicketInCents: computeAverageTicket(revenueInCents, salesCount),
 		itemsSold: Number(row?.itemsSold ?? 0),
 	};
 }
@@ -122,6 +193,27 @@ function toKpis(row: KpiRow | undefined) {
 /** Anything that runs parameterized SQL — `prisma`, or a pg client in scripts. */
 export interface RawQueryClient {
 	$queryRawUnsafe<T = unknown>(query: string, ...values: unknown[]): Promise<T>;
+}
+
+/**
+ * KPIs of completed services (tabs with a payment) between `start` and `end`.
+ * Shared by the sales dashboard and the average-ticket report so both always
+ * show the same number.
+ */
+async function fetchSalesKpis(
+	client: RawQueryClient,
+	restaurantId: string,
+	start: Date,
+	end: Date
+) {
+	const rows = await client.$queryRawUnsafe<KpiRow[]>(
+		KPIS_SQL,
+		restaurantId,
+		start.toISOString(),
+		end.toISOString()
+	);
+
+	return toKpis(rows[0]);
 }
 
 /**
@@ -137,16 +229,16 @@ export async function fetchSalesReport(
 	const range = getSalesPeriodRange(period, now);
 
 	const current = [restaurantId, range.start.toISOString(), now.toISOString()];
-	const previous = [
-		restaurantId,
-		range.previousStart.toISOString(),
-		range.previousEnd.toISOString(),
-	];
 
-	const [kpiRows, previousKpiRows, seriesRows, methodRows, topItemRows] =
+	const [kpis, previousKpis, seriesRows, methodRows, topItemRows] =
 		await Promise.all([
-			client.$queryRawUnsafe<KpiRow[]>(KPIS_SQL, ...current),
-			client.$queryRawUnsafe<KpiRow[]>(KPIS_SQL, ...previous),
+			fetchSalesKpis(client, restaurantId, range.start, now),
+			fetchSalesKpis(
+				client,
+				restaurantId,
+				range.previousStart,
+				range.previousEnd
+			),
 			client.$queryRawUnsafe<SeriesRow[]>(
 				SERIES_SQL,
 				...current,
@@ -200,10 +292,89 @@ export async function fetchSalesReport(
 		generatedAt: now,
 		range: { start: range.start, end: range.end },
 		comparisonRange: { start: range.previousStart, end: range.previousEnd },
-		kpis: toKpis(kpiRows[0]),
-		previousKpis: toKpis(previousKpiRows[0]),
+		kpis,
+		previousKpis,
 		series,
 		byPaymentMethod,
 		topItems,
+	};
+}
+
+/**
+ * Average ticket (RN01) of the period and of the previous period cut at the
+ * same elapsed time, with the revenue and service counts behind it.
+ */
+export async function fetchAverageTicket(
+	client: RawQueryClient,
+	restaurantId: string,
+	period: SalesPeriod,
+	now: Date = new Date()
+) {
+	const range = getSalesPeriodRange(period, now);
+
+	const [current, previous] = await Promise.all([
+		fetchSalesKpis(client, restaurantId, range.start, now),
+		fetchSalesKpis(
+			client,
+			restaurantId,
+			range.previousStart,
+			range.previousEnd
+		),
+	]);
+
+	const toTicket = (kpis: typeof current) => ({
+		averageTicketInCents: kpis.averageTicketInCents,
+		revenueInCents: kpis.revenueInCents,
+		completedServices: kpis.salesCount,
+	});
+
+	return {
+		period,
+		generatedAt: now,
+		range: { start: range.start, end: range.end },
+		comparisonRange: { start: range.previousStart, end: range.previousEnd },
+		current: toTicket(current),
+		previous: toTicket(previous),
+	};
+}
+
+/** Top 10 products of the period by units sold (RF02, RF03). */
+export async function fetchTopProducts(
+	client: RawQueryClient,
+	restaurantId: string,
+	period: SalesPeriod,
+	now: Date = new Date()
+) {
+	const range = getSalesPeriodRange(period, now);
+
+	const rows = await client.$queryRawUnsafe<TopProductRow[]>(
+		TOP_PRODUCTS_SQL,
+		restaurantId,
+		range.start.toISOString(),
+		now.toISOString()
+	);
+
+	const totalUnits = Number(rows[0]?.totalUnits ?? 0);
+
+	return {
+		period,
+		generatedAt: now,
+		range: { start: range.start, end: range.end },
+		totalUnits,
+		products: rows.map((row, index) => {
+			const quantity = Number(row.quantity);
+
+			return {
+				rank: index + 1,
+				menuItemId: row.menuItemId,
+				name: row.name,
+				categoryName: row.categoryName,
+				quantity,
+				unitsShare: totalUnits === 0 ? 0 : quantity / totalUnits,
+				revenueInCents: Number(row.revenueInCents),
+				servicesCount: Number(row.servicesCount),
+				averageTicketWithItemInCents: Number(row.averageTicketWithItemInCents),
+			};
+		}),
 	};
 }

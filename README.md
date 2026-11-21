@@ -101,6 +101,7 @@ The web app will be available at `http://localhost:3000`.
 - KPIs (revenue, sales, average ticket, items sold) for today, the current week or the current month, compared with the previous period at the same point
 - Revenue chart (hourly for today, daily for week/month), revenue by payment method and top 5 items
 - Refreshes every 30 s; periods follow the restaurant's time zone (America/Sao_Paulo)
+- "Produtos e ticket" view: average ticket card (consolidated revenue ÷ completed services) and a Top 10 products table by units sold, with each product's share of units, revenue and the average ticket of the services that ordered it
 
 ### Cash register
 - Open the day's cash register with an opening float
