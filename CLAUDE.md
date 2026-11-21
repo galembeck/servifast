@@ -129,6 +129,8 @@ Use `ability()` from `auth-provider.ts` in Server Components to gate UI. `Shift`
 
 `Report` gates the sales dashboard (`GET /restaurants/:slug/reports/{sales,average-ticket,top-products}`, OWNER + BILLING). The average ticket (revenue ÷ completed services, i.e. tabs with a payment) comes from one shared KPI query, so the dashboard card and the average-ticket report always match. Its SQL lives in `apps/api/src/lib/sales-report.ts` (raw parameterized SUM/COUNT/GROUP BY via `$queryRawUnsafe`); calendar periods and buckets are computed in `src/lib/sales-period.ts` in the America/Sao_Paulo zone.
 
+Stock: `MenuItem.stockQuantity` (nullable — null means the item doesn't track stock) is decremented 1:1 when a tab is closed, inside the `close-tab` transaction (`decrementStockForSale` in `apps/api/src/lib/stock.ts`, conditional `stock >= qty` updates). A shortage throws 409 `INSUFFICIENT_STOCK` and rolls back the payment/close; `add-tab-item` rejects 422 `ITEM_OUT_OF_STOCK` up front, and a CHECK constraint keeps the balance >= 0.
+
 Owner-level restriction: only the restaurant's `ownerId` may call `transfer_ownership` or `update` on `Restaurant`, even for users with the OWNER role.
 
 ### Environment Variables

@@ -13,6 +13,7 @@ import { BadRequestError } from "../_errors/bad-request-error";
 import { ConflictError } from "../_errors/conflict-error";
 import { NotFoundError } from "../_errors/not-found-error";
 import { UnauthorizedError } from "../_errors/unauthorized-error";
+import { UnprocessableEntityError } from "../_errors/unprocessable-entity-error";
 
 export async function addTabItemRoute(app: FastifyInstance) {
 	app
@@ -24,7 +25,8 @@ export async function addTabItemRoute(app: FastifyInstance) {
 				schema: {
 					tags: ["Tabs"],
 					summary: "/restaurants/:slug/tabs/:tabId/items",
-					description: "Add an item to an open tab",
+					description:
+						"Add an item to an open tab. Rejects with 422 ITEM_OUT_OF_STOCK when the item tracks stock and has fewer units than requested (stock is only decremented when the tab is closed).",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -106,6 +108,17 @@ export async function addTabItemRoute(app: FastifyInstance) {
 						"Menu item is not available.",
 						MenuException.ITEM_UNAVAILABLE,
 						"Only available menu items can be added to a tab."
+					);
+				}
+
+				const isOutOfStock =
+					menuItem.stockQuantity !== null && menuItem.stockQuantity < quantity;
+
+				if (isOutOfStock) {
+					throw new UnprocessableEntityError(
+						"Not enough stock.",
+						MenuException.ITEM_OUT_OF_STOCK,
+						`Only ${menuItem.stockQuantity} unit(s) of this item in stock.`
 					);
 				}
 

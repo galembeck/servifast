@@ -37,6 +37,8 @@ describe("POST /restaurants/:slug/tabs/:tabId/close", () => {
 
 	const tabId = faker.string.uuid();
 	const tableId = faker.string.uuid();
+	const burgerId = faker.string.uuid();
+	const sodaId = faker.string.uuid();
 
 	// 2 × R$ 30,00 + 1 × R$ 15,50 = R$ 75,50 (cancelled items are filtered by
 	// the query, so they never reach the sum).
@@ -45,15 +47,43 @@ describe("POST /restaurants/:slug/tabs/:tabId/close", () => {
 		closedAt: null,
 		tableId,
 		items: [
-			{ quantity: 2, unitPriceInCents: 3000, status: "DELIVERED" },
-			{ quantity: 1, unitPriceInCents: 1550, status: "DELIVERED" },
+			{
+				menuItemId: burgerId,
+				quantity: 2,
+				unitPriceInCents: 3000,
+				status: "DELIVERED",
+			},
+			{
+				menuItemId: sodaId,
+				quantity: 1,
+				unitPriceInCents: 1550,
+				status: "DELIVERED",
+			},
 		],
 	};
 
-	function mockTransaction({ tabUpdatedCount = 1 } = {}) {
+	interface TrackedItem {
+		id: string;
+		name: string;
+		stockQuantity: number;
+	}
+
+	function mockTransaction({
+		tabUpdatedCount = 1,
+		trackedItems = [] as TrackedItem[],
+		shortOf = [] as string[],
+	} = {}) {
 		const tx = {
 			tab: {
 				updateMany: vi.fn().mockResolvedValue({ count: tabUpdatedCount }),
+			},
+			menuItem: {
+				findMany: vi.fn().mockResolvedValue(trackedItems),
+				updateMany: vi
+					.fn()
+					.mockImplementation(({ where }: { where: { id: string } }) => ({
+						count: shortOf.includes(where.id) ? 0 : 1,
+					})),
 			},
 			payment: {
 				create: vi.fn().mockImplementation(({ data }) => ({
@@ -209,6 +239,84 @@ describe("POST /restaurants/:slug/tabs/:tabId/close", () => {
 				}),
 			})
 		);
+	});
+
+	it("decrements the stock 1:1 for every tracked product when closing (RN01/RN02)", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue({
+			...openTab,
+			items: [
+				...openTab.items,
+				// Same product in two rounds: summed into a single decrement.
+				{
+					menuItemId: burgerId,
+					quantity: 1,
+					unitPriceInCents: 3000,
+					status: "DELIVERED",
+				},
+			],
+		});
+		const tx = mockTransaction({
+			// The soda is not tracked (null stock), so findMany leaves it out.
+			trackedItems: [{ id: burgerId, name: "X-Burguer", stockQuantity: 10 }],
+		});
+
+		const { response } = await closeTab("CASHIER", { method: "PIX" });
+
+		expect(response.statusCode).toBe(200);
+		expect(tx.menuItem.findMany).toHaveBeenCalledWith(
+			expect.objectContaining({
+				where: {
+					id: { in: [burgerId, sodaId] },
+					stockQuantity: { not: null },
+				},
+			})
+		);
+		expect(tx.menuItem.updateMany).toHaveBeenCalledTimes(1);
+		expect(tx.menuItem.updateMany).toHaveBeenCalledWith({
+			where: { id: burgerId, stockQuantity: { gte: 3 } },
+			data: { stockQuantity: { decrement: 3 } },
+		});
+		expect(tx.payment.create).toHaveBeenCalled();
+	});
+
+	it("only reads non-cancelled items, so cancelled ones never leave the stock", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		mockTransaction();
+
+		await closeTab("CASHIER", { method: "PIX" });
+
+		expect(prismaMock.tab.findUnique).toHaveBeenCalledWith(
+			expect.objectContaining({
+				select: expect.objectContaining({
+					items: expect.objectContaining({
+						where: { status: { not: "CANCELLED" } },
+					}),
+				}),
+			})
+		);
+	});
+
+	it("returns 409 INSUFFICIENT_STOCK listing the shortages and records nothing", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		const tx = mockTransaction({
+			trackedItems: [
+				{ id: burgerId, name: "X-Burguer", stockQuantity: 1 },
+				{ id: sodaId, name: "Refrigerante", stockQuantity: 5 },
+			],
+			shortOf: [burgerId],
+		});
+
+		const { response } = await closeTab("CASHIER", { method: "PIX" });
+
+		expect(response.statusCode).toBe(409);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "INSUFFICIENT_STOCK",
+			description: "X-Burguer \u00d71",
+		});
+		// Thrown inside the transaction: Prisma rolls back the tab update and
+		// any decrement already applied; payment and table are never touched.
+		expect(tx.payment.create).not.toHaveBeenCalled();
+		expect(tx.table.update).not.toHaveBeenCalled();
 	});
 
 	it("returns 400 CASH_RECEIVED_AMOUNT_REQUIRED for cash without received amount", async () => {

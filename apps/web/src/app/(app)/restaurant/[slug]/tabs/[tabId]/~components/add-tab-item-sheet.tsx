@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormState } from "@/hooks/use-form-state";
+import { formatStock, isOutOfStock, type StockQuantity } from "@/lib/stock";
 import { addTabItemAction } from "../~actions/actions";
 
 interface MenuItem {
@@ -26,6 +27,7 @@ interface MenuItem {
 	isAvailable: boolean;
 	name: string;
 	priceInCents: number;
+	stockQuantity: StockQuantity;
 }
 
 interface AddTabItemSheetProps {
@@ -61,6 +63,10 @@ export function AddTabItemSheet({ tabId, menuItems }: AddTabItemSheetProps) {
 		(item) =>
 			item.isAvailable && item.name.toLowerCase().includes(search.toLowerCase())
 	);
+
+	// Stock is only decremented when the tab closes, so this is the balance
+	// right now; the API re-checks it when the item is added.
+	const maxQuantity = selectedItem?.stockQuantity ?? null;
 
 	function handleOpenChange(next: boolean) {
 		setOpen(next);
@@ -131,15 +137,36 @@ export function AddTabItemSheet({ tabId, menuItems }: AddTabItemSheetProps) {
 						) : (
 							availableItems.map((item) => (
 								<button
-									className={`flex w-full items-center justify-between rounded px-3 py-2 text-left text-sm transition-colors hover:bg-accent ${
+									className={`flex w-full items-center justify-between gap-3 rounded px-3 py-2 text-left text-sm transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent ${
 										selectedItem?.id === item.id ? "bg-accent font-medium" : ""
 									}`}
+									disabled={isOutOfStock(item.stockQuantity)}
 									key={item.id}
-									onClick={() => setSelectedItem(item)}
+									onClick={() => {
+										setSelectedItem(item);
+										setQuantity((current) =>
+											item.stockQuantity === null
+												? current
+												: Math.min(current, item.stockQuantity)
+										);
+									}}
 									type="button"
 								>
-									<span>{item.name}</span>
-									<span className="text-muted-foreground">
+									<span className="min-w-0">
+										<span className="block truncate">{item.name}</span>
+										{item.stockQuantity !== null && (
+											<span
+												className={`block text-xs ${
+													isOutOfStock(item.stockQuantity)
+														? "text-destructive"
+														: "text-muted-foreground"
+												}`}
+											>
+												{formatStock(item.stockQuantity)}
+											</span>
+										)}
+									</span>
+									<span className="shrink-0 text-muted-foreground">
 										{formatPrice(item.priceInCents)}
 									</span>
 								</button>
@@ -170,6 +197,7 @@ export function AddTabItemSheet({ tabId, menuItems }: AddTabItemSheetProps) {
 								{quantity}
 							</span>
 							<Button
+								disabled={maxQuantity !== null && quantity >= maxQuantity}
 								onClick={() => setQuantity((q) => q + 1)}
 								size="icon-sm"
 								type="button"

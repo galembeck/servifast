@@ -103,6 +103,11 @@ The web app will be available at `http://localhost:3000`.
 - Refreshes every 30 s; periods follow the restaurant's time zone (America/Sao_Paulo)
 - "Produtos e ticket" view: average ticket card (consolidated revenue ÷ completed services) and a Top 10 products table by units sold, with each product's share of units, revenue and the average ticket of the services that ordered it
 
+### Stock
+- Each menu item may track units on hand (empty = not tracked, e.g. made-to-order dishes); the balance shows on the products screen
+- Closing a tab decrements the stock 1:1 with the units sold (cancelled items excluded), in the same transaction as the payment
+- Items without enough stock can't be added to a tab, and a tab can't be closed while a product lacks stock (409 `INSUFFICIENT_STOCK`, nothing is recorded); the balance never goes negative
+
 ### Cash register
 - Open the day's cash register with an opening float
 - Record supplies (suprimento) and withdrawals (sangria) — a withdrawal can't exceed the cash in the drawer

@@ -9,6 +9,7 @@ import { PaymentException } from "@/http/_errors/exceptions/payment";
 import { TabException } from "@/http/_errors/exceptions/tab";
 import { auth } from "@/http/middlewares/auth";
 import { prisma } from "@/lib/prisma";
+import { decrementStockForSale } from "@/lib/stock";
 import { BadRequestError } from "../_errors/bad-request-error";
 import { ConflictError } from "../_errors/conflict-error";
 import { ForbiddenError } from "../_errors/forbidden-error";
@@ -36,7 +37,7 @@ export async function closeTabRoute(app: FastifyInstance) {
 					tags: ["Tabs"],
 					summary: "/restaurants/:slug/tabs/:tabId/close",
 					description:
-						"Checkout: registers the payment (cash, credit/debit card or PIX), closes the tab and sets the table back to FREE in a single transaction. Every item must be DELIVERED or CANCELLED first (409 TAB_HAS_PENDING_ITEMS otherwise). The amount is computed server-side from every non-cancelled item. For CASH, `receivedInCents` is required and must cover the total; the change is computed and stored.",
+						'Checkout: registers the payment (cash, credit/debit card or PIX), closes the tab and sets the table back to FREE in a single transaction. Every item must be DELIVERED or CANCELLED first (409 TAB_HAS_PENDING_ITEMS otherwise). Closing decrements the stock of every tracked product 1:1 with the units sold; if any product lacks stock, nothing is recorded and it returns 409 INSUFFICIENT_STOCK (description lists the shortages, e.g. "Chopp ×1"). The amount is computed server-side from every non-cancelled item. For CASH, `receivedInCents` is required and must cover the total; the change is computed and stored.',
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -93,7 +94,12 @@ export async function closeTabRoute(app: FastifyInstance) {
 						tableId: true,
 						items: {
 							where: { status: { not: "CANCELLED" } },
-							select: { quantity: true, unitPriceInCents: true, status: true },
+							select: {
+								menuItemId: true,
+								quantity: true,
+								unitPriceInCents: true,
+								status: true,
+							},
 						},
 					},
 				});
@@ -177,6 +183,10 @@ export async function closeTabRoute(app: FastifyInstance) {
 								"The tab was closed or received new items before this payment could be recorded."
 							);
 						}
+
+						// RN01/RN02: the closing event decrements the stock 1:1. Throws
+						// 409 INSUFFICIENT_STOCK (rolling everything back) when short.
+						await decrementStockForSale(tx, tab.items);
 
 						const createdPayment = await tx.payment.create({
 							data: {

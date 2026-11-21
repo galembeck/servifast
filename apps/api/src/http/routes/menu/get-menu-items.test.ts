@@ -49,6 +49,7 @@ describe("GET /restaurants/:slug/menu-items", () => {
 				imageUrl: null,
 				categoryId,
 				isAvailable: true,
+				stockQuantity: 24,
 			},
 		]);
 

@@ -192,6 +192,9 @@ model MenuItem {
   priceInCents Int     @map("price_in_cents")
   imageUrl     String? @map("image_url")
   isAvailable  Boolean @default(true) @map("is_available")
+  /// Units on hand; null = stock not tracked (e.g. made-to-order dishes).
+  /// Decremented 1:1 when a tab is closed. CHECK (>= 0) in the migration.
+  stockQuantity Int?   @map("stock_quantity")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

@@ -9,6 +9,8 @@ interface GetMenuItemsResponse {
 		isAvailable: boolean;
 		name: string;
 		priceInCents: number;
+		/** Units on hand; null = stock not tracked. */
+		stockQuantity: number | null;
 	}[];
 }
 

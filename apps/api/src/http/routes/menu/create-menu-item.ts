@@ -9,6 +9,7 @@ import { MenuException } from "@/http/_errors/exceptions/menu";
 import { auth } from "@/http/middlewares/auth";
 import { saveMenuItemImage } from "@/lib/menu-item-image-storage";
 import { prisma } from "@/lib/prisma";
+import { stockQuantityFieldSchema } from "@/lib/stock";
 import { BadRequestError } from "../_errors/bad-request-error";
 import { UnauthorizedError } from "../_errors/unauthorized-error";
 
@@ -17,6 +18,7 @@ const menuItemFieldsSchema = z.object({
 	description: z.string().nullish(),
 	price: z.coerce.number().positive(),
 	categoryId: z.uuid(),
+	stockQuantity: stockQuantityFieldSchema,
 });
 
 export async function createMenuItemRoute(app: FastifyInstance) {
@@ -29,7 +31,8 @@ export async function createMenuItemRoute(app: FastifyInstance) {
 				schema: {
 					tags: ["Menu"],
 					summary: "/restaurants/:slug/menu-items",
-					description: "Create a new menu item for a restaurant",
+					description:
+						"Create a new menu item for a restaurant. Optional `stockQuantity` field: units on hand (empty/missing = stock not tracked).",
 					security: [{ bearerAuth: [] }],
 					consumes: ["multipart/form-data"],
 					params: z.object({
@@ -70,7 +73,7 @@ export async function createMenuItemRoute(app: FastifyInstance) {
 					}
 				}
 
-				const { name, description, price, categoryId } =
+				const { name, description, price, categoryId, stockQuantity } =
 					menuItemFieldsSchema.parse(fields);
 
 				const category = await prisma.menuCategory.findUnique({
@@ -93,6 +96,7 @@ export async function createMenuItemRoute(app: FastifyInstance) {
 						description,
 						priceInCents: Math.round(price * 100),
 						imageUrl,
+						stockQuantity: stockQuantity ?? null,
 					},
 				});
 

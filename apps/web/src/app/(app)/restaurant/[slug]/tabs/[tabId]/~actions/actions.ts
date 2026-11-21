@@ -44,10 +44,28 @@ export async function addTabItemAction(data: FormData) {
 		});
 	} catch (error) {
 		if (error instanceof HTTPError) {
-			const { title = null, description = null } = (error.data ?? {}) as {
-				title?: string | null;
+			const {
+				message,
+				title = null,
+				description = null,
+			} = (error.data ?? {}) as {
 				description?: string | null;
+				message?: string;
+				title?: string | null;
 			};
+
+			if (message === "ITEM_OUT_OF_STOCK") {
+				// The balance changed since the sheet was opened: refresh it.
+				revalidateTag(`${currentRestaurant}/menu-items`, "max");
+
+				return {
+					success: false,
+					title: "Estoque insuficiente",
+					description:
+						"Não há unidades suficientes deste produto. Reduza a quantidade ou escolha outro item.",
+					errors: null,
+				};
+			}
 
 			return { success: false, title, description, errors: null };
 		}
@@ -201,6 +219,13 @@ const CLOSE_TAB_ERROR_MESSAGES: Record<string, string> = {
 	FORBIDDEN: "Você não tem permissão para fechar contas.",
 };
 
+/** 409 INSUFFICIENT_STOCK: the API lists the shortages, e.g. "Chopp ×1". */
+function insufficientStockMessage(shortages: string | null | undefined) {
+	const missing = shortages ? ` Faltam: ${shortages}.` : "";
+
+	return `Estoque insuficiente para fechar a conta.${missing} Ajuste o saldo na tela de produtos ou cancele o item.`;
+}
+
 export async function closeTabAction(
 	tabId: string,
 	method: PaymentMethod,
@@ -219,6 +244,8 @@ export async function closeTabAction(
 
 		revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");
 		revalidateTag(`${currentRestaurant}/tables`, "max");
+		// Closing decremented the stock of the products sold.
+		revalidateTag(`${currentRestaurant}/menu-items`, "max");
 
 		return { success: true as const, title: "Conta fechada!", payment };
 	} catch (error) {
@@ -227,9 +254,17 @@ export async function closeTabAction(
 
 		if (error instanceof HTTPError) {
 			const data = (error.data ?? {}) as {
+				description?: string | null;
 				message?: string;
 				title?: string | null;
 			};
+
+			if (data.message === "INSUFFICIENT_STOCK") {
+				return {
+					success: false as const,
+					title: insufficientStockMessage(data.description),
+				};
+			}
 
 			return {
 				success: false as const,

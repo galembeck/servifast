@@ -23,7 +23,9 @@ import {
 } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useFormState } from "@/hooks/use-form-state";
+import type { StockQuantity } from "@/lib/stock";
 import { updateMenuItemAction } from "../~actions/actions";
+import { StockField } from "./stock-field";
 
 interface EditItemSheetProps {
 	categories: { id: string; name: string }[];
@@ -34,6 +36,7 @@ interface EditItemSheetProps {
 		isAvailable: boolean;
 		name: string;
 		priceInCents: number;
+		stockQuantity: StockQuantity;
 	};
 }
 
@@ -133,6 +136,11 @@ export function EditItemSheet({ categories, item }: EditItemSheetProps) {
 							</p>
 						)}
 					</div>
+
+					<StockField
+						defaultValue={item.stockQuantity}
+						error={errors?.stockQuantity?.[0]}
+					/>
 
 					<div className="space-y-3">
 						<Label htmlFor="categoryId">Categoria</Label>

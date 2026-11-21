@@ -131,6 +131,78 @@ describe("PUT /restaurants/:slug/menu-items/:itemId", () => {
 		);
 	});
 
+	async function updateStock(fields: Record<string, string>) {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "OWNER");
+		const itemId = faker.string.uuid();
+		const categoryId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.menuItem.findUnique.mockResolvedValue({
+			id: itemId,
+			restaurantId: restaurant.id,
+			imageUrl: null,
+		});
+		prismaMock.menuCategory.findUnique.mockResolvedValue({
+			id: categoryId,
+			restaurantId: restaurant.id,
+		});
+		prismaMock.menuItem.update.mockResolvedValue({ id: itemId });
+
+		return await app.inject({
+			method: "PUT",
+			url: `/restaurants/${restaurant.slug}/menu-items/${itemId}`,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"content-type": `multipart/form-data; boundary=${BOUNDARY}`,
+			},
+			payload: buildMultipartBody({
+				name: "Chopp",
+				price: "12",
+				categoryId,
+				isAvailable: "true",
+				...fields,
+			}),
+		});
+	}
+
+	it("sets the stock balance", async () => {
+		const response = await updateStock({ stockQuantity: "30" });
+
+		expect(response.statusCode).toBe(204);
+		expect(prismaMock.menuItem.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ stockQuantity: 30 }),
+			})
+		);
+	});
+
+	it("stops tracking stock when the field is sent empty", async () => {
+		const response = await updateStock({ stockQuantity: "" });
+
+		expect(response.statusCode).toBe(204);
+		expect(prismaMock.menuItem.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ stockQuantity: null }),
+			})
+		);
+	});
+
+	it("keeps the current stock when the field is not sent", async () => {
+		const response = await updateStock({});
+
+		expect(response.statusCode).toBe(204);
+		const data = prismaMock.menuItem.update.mock.calls[0]?.[0]?.data;
+		expect(data).not.toHaveProperty("stockQuantity");
+	});
+
+	it("returns 400 validation error for a negative stock", async () => {
+		const response = await updateStock({ stockQuantity: "-3" });
+
+		expect(response.statusCode).toBe(400);
+		expect(prismaMock.menuItem.update).not.toHaveBeenCalled();
+	});
+
 	it("returns 401 UNAUTHORIZED when user is WAITER", async () => {
 		const userId = faker.string.uuid();
 		const { restaurant } = mockMembership(userId, "WAITER");

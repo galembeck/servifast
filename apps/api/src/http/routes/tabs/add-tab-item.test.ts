@@ -34,7 +34,8 @@ function makeOpenTab(restaurantId: string, tabId = faker.string.uuid()) {
 function makeMenuItem(
 	restaurantId: string,
 	menuItemId = faker.string.uuid(),
-	isAvailable = true
+	isAvailable = true,
+	stockQuantity: number | null = null
 ) {
 	return {
 		id: menuItemId,
@@ -43,6 +44,7 @@ function makeMenuItem(
 		priceInCents: 1500,
 		imageUrl: null,
 		isAvailable,
+		stockQuantity,
 		createdAt: new Date(),
 		updatedAt: new Date(),
 		restaurantId,
@@ -398,6 +400,75 @@ describe("POST /restaurants/:slug/tabs/:tabId/items", () => {
 		expect(JSON.parse(response.body)).toMatchObject({
 			message: "ITEM_UNAVAILABLE",
 		});
+	});
+
+	it("returns 422 ITEM_OUT_OF_STOCK when stock is lower than the quantity", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "WAITER");
+		const tabId = faker.string.uuid();
+		const menuItemId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.tab.findUnique.mockResolvedValue(
+			makeOpenTab(restaurant.id, tabId)
+		);
+		prismaMock.menuItem.findUnique.mockResolvedValue(
+			makeMenuItem(restaurant.id, menuItemId, true, 2)
+		);
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/restaurants/${restaurant.slug}/tabs/${tabId}/items`,
+			headers: { Authorization: `Bearer ${token}` },
+			body: { menuItemId, quantity: 3 },
+		});
+
+		expect(response.statusCode).toBe(422);
+		expect(JSON.parse(response.body)).toMatchObject({
+			message: "ITEM_OUT_OF_STOCK",
+		});
+		expect(prismaMock.$transaction).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		["the exact stock", 2],
+		["an untracked item", null],
+	])("accepts an item with %s", async (_label, stockQuantity) => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "WAITER");
+		const tabId = faker.string.uuid();
+		const menuItemId = faker.string.uuid();
+		const token = signToken(app, userId);
+		const tab = makeOpenTab(restaurant.id, tabId);
+
+		prismaMock.tab.findUnique.mockResolvedValue(tab);
+		prismaMock.menuItem.findUnique.mockResolvedValue(
+			makeMenuItem(restaurant.id, menuItemId, true, stockQuantity)
+		);
+		prismaMock.$transaction.mockImplementation((fn: unknown) => {
+			if (typeof fn === "function") {
+				return fn({
+					tab: { findUnique: vi.fn().mockResolvedValue(tab) },
+					orderItem: {
+						create: vi
+							.fn()
+							.mockResolvedValue(
+								makeOrderItem(tabId, menuItemId, restaurant.id)
+							),
+					},
+				});
+			}
+			return fn;
+		});
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/restaurants/${restaurant.slug}/tabs/${tabId}/items`,
+			headers: { Authorization: `Bearer ${token}` },
+			body: { menuItemId, quantity: 2 },
+		});
+
+		expect(response.statusCode).toBe(201);
 	});
 
 	it("returns 400 validation error when quantity is zero (cenário 2c)", async () => {
