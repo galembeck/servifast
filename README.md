@@ -97,6 +97,11 @@ The web app will be available at `http://localhost:3000`.
 - Create, update, and delete projects per restaurant
 - List all projects within a restaurant
 
+### Sales dashboard
+- KPIs (revenue, sales, average ticket, items sold) for today, the current week or the current month, compared with the previous period at the same point
+- Revenue chart (hourly for today, daily for week/month), revenue by payment method and top 5 items
+- Refreshes every 30 s; periods follow the restaurant's time zone (America/Sao_Paulo)
+
 ### Cash register
 - Open the day's cash register with an opening float
 - Record supplies (suprimento) and withdrawals (sangria) — a withdrawal can't exceed the cash in the drawer
@@ -120,6 +125,7 @@ Roles: **Owner**, **Manager**, **Waiter**, **Cashier**, **Kitchen**, **Billing**
 | Manage tables        | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Manage menu          | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Manage shift/register | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| View sales dashboard | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 | View billing         | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
 | Manage billing       | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 

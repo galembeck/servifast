@@ -123,9 +123,11 @@ Next.js App Router with `src/` directory layout.
 
 ### RBAC (`packages/rbac`)
 
-Built on CASL. `defineAbilityFor(user)` returns an `AppAbility` instance based on the user's role. Permission subjects: `Restaurant`, `User`, `Invite`, `Menu`, `Order`, `Table`, `Shift`, `Billing`.
+Built on CASL. `defineAbilityFor(user)` returns an `AppAbility` instance based on the user's role. Permission subjects: `Restaurant`, `User`, `Invite`, `Menu`, `Order`, `Table`, `Shift`, `Billing`, `Report`.
 
 Use `ability()` from `auth-provider.ts` in Server Components to gate UI. `Shift` gates the cash register (`/restaurants/:slug/cash-register/*`, models `CashRegisterSession`/`CashRegisterTransaction`): movements are append-only — the migration adds a trigger rejecting UPDATEs on `cash_register_transactions`, a trigger freezing closed sessions, and a partial unique index allowing one open register per restaurant.
+
+`Report` gates the sales dashboard (`GET /restaurants/:slug/reports/sales`, OWNER + BILLING). Its SQL lives in `apps/api/src/lib/sales-report.ts` (raw parameterized SUM/COUNT/GROUP BY via `$queryRawUnsafe`); calendar periods and buckets are computed in `src/lib/sales-period.ts` in the America/Sao_Paulo zone.
 
 Owner-level restriction: only the restaurant's `ownerId` may call `transfer_ownership` or `update` on `Restaurant`, even for users with the OWNER role.
 

@@ -12,6 +12,7 @@ export async function Tabs() {
 	const canGetTables = permissions?.can("get", "Table");
 	const canGetKitchenQueue = permissions?.can("update", "Order");
 	const canGetCashRegister = permissions?.can("get", "Shift");
+	const canGetSalesReport = permissions?.can("get", "Report");
 
 	const canUpdateRestaurant = permissions?.can("update", "Restaurant");
 	const canGetBillingDetails = permissions?.can("get", "Billing");
@@ -19,6 +20,19 @@ export async function Tabs() {
 	return (
 		<div className="border-b py-4">
 			<nav className="mx-auto flex max-w-300 items-center gap-2">
+				{canGetSalesReport && (
+					<Button
+						asChild
+						className="border border-transparent text-muted-foreground data-[current=true]:border-border data-[current=true]:text-foreground"
+						size="sm"
+						variant="ghost"
+					>
+						<NavLink href={`/restaurant/${currentRestaurant}/dashboard`}>
+							Dashboard
+						</NavLink>
+					</Button>
+				)}
+
 				{canGetMenu && (
 					<Button
 						asChild

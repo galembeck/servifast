@@ -114,6 +114,7 @@ export const prismaMock = {
 		create: vi.fn(),
 	},
 	$transaction: vi.fn(),
+	$queryRawUnsafe: vi.fn(),
 };
 
 export function resetPrismaMocks() {

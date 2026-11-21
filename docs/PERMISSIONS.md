@@ -77,6 +77,7 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 | Manage menu               | ✅    | ✅      | ❌     | ❌      | ❌      | ❌      | ❌        |
 | View menu                 | ✅    | ✅      | ✅     | ❌      | ✅      | ❌      | ❌        |
 | Manage shift/register⁵    | ✅    | ✅      | ❌     | ✅      | ❌      | ❌      | ❌        |
+| View sales dashboard⁶     | ✅    | ❌      | ❌     | ❌      | ❌      | ✅      | ❌        |
 | Get billing details      | ✅    | ✅      | ❌     | ✅      | ❌      | ✅      | ❌        |
 | Manage billing            | ✅    | ❌      | ❌     | ❌      | ❌      | ✅      | ❌        |
 | List/manage projects\*   | ✅    | ❌      | ❌     | ❌      | ❌      | ❌      | ❌        |
@@ -88,6 +89,8 @@ Roles & permissions. `packages/rbac` defines these via CASL (`@casl/ability`); t
 > ³ Items already sent to the kitchen can't be cancelled normally. OWNER/MANAGER (`force_cancel` on `Order`) can still cancel them by sending `{ "force": true }`; the UI labels this as a "cancelamento forçado".
 >
 > ⁴ `close` on `Order`: registers the payment (cash, credit/debit card or PIX), closes the tab and frees the table — `POST /restaurants/:slug/tabs/:tabId/close`.
+>
+> ⁶ `get` on `Report`: the sales dashboard — `GET /restaurants/:slug/reports/sales?period=today|week|month`. OWNER gets it through `manage all`; BILLING is granted `get` explicitly.
 >
 > ⁵ `manage` on `Shift`: opens the cash register with the opening float, records supplies (suprimento) and withdrawals (sangria), and closes it with a blind count — `POST /restaurants/:slug/cash-register/{open,transactions,close}`. Every movement stores the operator and is immutable (UPDATEs are rejected by a database trigger).
 >
