@@ -24,6 +24,7 @@
 	--color-chart-3: var(--chart-3);
 	--color-chart-2: var(--chart-2);
 	--color-chart-1: var(--chart-1);
+	--color-chart-sales: var(--chart-sales);
 	--color-ring: var(--ring);
 	--color-input: var(--input);
 	--color-border: var(--border);
@@ -75,6 +76,8 @@
 	--chart-3: oklch(0.439 0 0);
 	--chart-4: oklch(0.371 0 0);
 	--chart-5: oklch(0.269 0 0);
+	/* Sales dashboard series (validated: >=3:1 on light and dark cards). */
+	--chart-sales: #d95926;
 	--radius: 0.625rem;
 	--sidebar: oklch(0.985 0 0);
 	--sidebar-foreground: oklch(0.145 0 0);
@@ -117,6 +120,8 @@
 	--chart-3: oklch(0.439 0 0);
 	--chart-4: oklch(0.371 0 0);
 	--chart-5: oklch(0.269 0 0);
+	/* Sales dashboard series (validated: >=3:1 on light and dark cards). */
+	--chart-sales: #d95926;
 	--sidebar: oklch(0.21 0.015 45);
 	--sidebar-foreground: oklch(0.97 0.01 70);
 	--sidebar-primary: oklch(0.75 0.16 55);

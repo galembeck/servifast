@@ -23,6 +23,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
 		can("manage", "Table");
 		can("manage", "Menu");
 		can("manage", "Shift");
+		can("manage", "Stock");
 
 		can(["create", "get", "delete"], "Invite");
 
@@ -51,6 +52,7 @@ export const permissions: Record<Role, PermissionsByRole> = {
 
 	BILLING(_, { can }) {
 		can("manage", "Billing");
+		can("get", "Report");
 		can("get", "Order");
 	},
 };

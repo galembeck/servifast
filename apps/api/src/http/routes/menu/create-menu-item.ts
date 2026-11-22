@@ -9,6 +9,7 @@ import { MenuException } from "@/http/_errors/exceptions/menu";
 import { auth } from "@/http/middlewares/auth";
 import { saveMenuItemImage } from "@/lib/menu-item-image-storage";
 import { prisma } from "@/lib/prisma";
+import { resolveStockSettings, stockQuantityFieldSchema } from "@/lib/stock";
 import { BadRequestError } from "../_errors/bad-request-error";
 import { UnauthorizedError } from "../_errors/unauthorized-error";
 
@@ -17,6 +18,8 @@ const menuItemFieldsSchema = z.object({
 	description: z.string().nullish(),
 	price: z.coerce.number().positive(),
 	categoryId: z.uuid(),
+	stockQuantity: stockQuantityFieldSchema,
+	minStockQuantity: stockQuantityFieldSchema,
 });
 
 export async function createMenuItemRoute(app: FastifyInstance) {
@@ -29,7 +32,8 @@ export async function createMenuItemRoute(app: FastifyInstance) {
 				schema: {
 					tags: ["Menu"],
 					summary: "/restaurants/:slug/menu-items",
-					description: "Create a new menu item for a restaurant",
+					description:
+						"Create a new menu item for a restaurant. Optional `stockQuantity` field: units on hand (empty/missing = stock not tracked). Optional `minStockQuantity`: low-stock alert threshold, only allowed when stock is tracked (400 MIN_STOCK_REQUIRES_TRACKING).",
 					security: [{ bearerAuth: [] }],
 					consumes: ["multipart/form-data"],
 					params: z.object({
@@ -70,8 +74,19 @@ export async function createMenuItemRoute(app: FastifyInstance) {
 					}
 				}
 
-				const { name, description, price, categoryId } =
-					menuItemFieldsSchema.parse(fields);
+				const {
+					name,
+					description,
+					price,
+					categoryId,
+					stockQuantity,
+					minStockQuantity,
+				} = menuItemFieldsSchema.parse(fields);
+
+				const stockSettings = resolveStockSettings({
+					stockQuantity,
+					minStockQuantity,
+				});
 
 				const category = await prisma.menuCategory.findUnique({
 					where: { id: categoryId },
@@ -93,6 +108,7 @@ export async function createMenuItemRoute(app: FastifyInstance) {
 						description,
 						priceInCents: Math.round(price * 100),
 						imageUrl,
+						...stockSettings,
 					},
 				});
 

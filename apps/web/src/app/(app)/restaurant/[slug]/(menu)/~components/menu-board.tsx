@@ -1,14 +1,21 @@
 "use client";
 
 import { env } from "@repo/env";
-import { Trash2, UtensilsCrossed } from "lucide-react";
+import { Package, Trash2, UtensilsCrossed } from "lucide-react";
 import Image from "next/image";
 import { useState, useTransition } from "react";
+import { StockAlertBadge } from "@/components/stock-alert-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import {
+	formatStock,
+	getStockAlertLevel,
+	isOutOfStock,
+	type StockQuantity,
+} from "@/lib/stock";
 import { cn } from "@/lib/utils";
 import {
 	deleteMenuItemAction,
@@ -29,8 +36,10 @@ interface MenuItem {
 	id: string;
 	imageUrl: string | null;
 	isAvailable: boolean;
+	minStockQuantity: number | null;
 	name: string;
 	priceInCents: number;
+	stockQuantity: StockQuantity;
 }
 
 interface MenuBoardProps {
@@ -57,6 +66,49 @@ function resolveImageUrl(imageUrl: string | null) {
 	}
 
 	return `${env.NEXT_PUBLIC_API_URL}${imageUrl}`;
+}
+
+/** Current balance (RF01); destructive when sold out. */
+function StockLabel({
+	stockQuantity,
+	minStockQuantity,
+}: {
+	minStockQuantity: number | null;
+	stockQuantity: StockQuantity;
+}) {
+	return (
+		<p
+			className={cn(
+				"flex items-center gap-1.5 text-xs",
+				isOutOfStock(stockQuantity)
+					? "font-medium text-destructive"
+					: "text-muted-foreground"
+			)}
+		>
+			<Package aria-hidden className="size-3.5" />
+			{formatStock(stockQuantity)}
+			{minStockQuantity !== null && ` · mín. ${minStockQuantity}`}
+		</p>
+	);
+}
+
+/** Unavailable flag plus the low-stock alert (red = sold out, yellow = low). */
+function ItemBadges({ item }: { item: MenuItem }) {
+	const alertLevel = getStockAlertLevel(
+		item.stockQuantity,
+		item.minStockQuantity
+	);
+
+	if (item.isAvailable && !alertLevel) {
+		return null;
+	}
+
+	return (
+		<div className="flex shrink-0 flex-wrap justify-end gap-1">
+			{alertLevel && <StockAlertBadge level={alertLevel} />}
+			{!item.isAvailable && <Badge variant="destructive">Indisponível</Badge>}
+		</div>
+	);
 }
 
 function ItemImage({
@@ -148,9 +200,7 @@ function DetailPanel({
 					<div className="flex items-center justify-between gap-2">
 						<h2 className="font-semibold text-lg">{item.name}</h2>
 
-						{!item.isAvailable && (
-							<Badge variant="destructive">Indisponível</Badge>
-						)}
+						<ItemBadges item={item} />
 					</div>
 
 					{item.description && (
@@ -158,9 +208,15 @@ function DetailPanel({
 					)}
 				</div>
 
-				<p className="font-semibold text-xl">
-					{formatPrice(item.priceInCents)}
-				</p>
+				<div className="space-y-1">
+					<p className="font-semibold text-xl">
+						{formatPrice(item.priceInCents)}
+					</p>
+					<StockLabel
+						minStockQuantity={item.minStockQuantity}
+						stockQuantity={item.stockQuantity}
+					/>
+				</div>
 
 				{canUpdateItem && (
 					<div className="flex items-baseline space-x-2">
@@ -278,9 +334,7 @@ export function MenuBoard({
 									<div className="flex items-center justify-between gap-2">
 										<h3 className="font-medium">{item.name}</h3>
 
-										{!item.isAvailable && (
-											<Badge variant="destructive">Indisponível</Badge>
-										)}
+										<ItemBadges item={item} />
 									</div>
 
 									{item.description && (
@@ -289,9 +343,15 @@ export function MenuBoard({
 										</p>
 									)}
 
-									<p className="font-semibold">
-										{formatPrice(item.priceInCents)}
-									</p>
+									<div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+										<p className="font-semibold">
+											{formatPrice(item.priceInCents)}
+										</p>
+										<StockLabel
+											minStockQuantity={item.minStockQuantity}
+											stockQuantity={item.stockQuantity}
+										/>
+									</div>
 								</CardContent>
 							</Card>
 						))}

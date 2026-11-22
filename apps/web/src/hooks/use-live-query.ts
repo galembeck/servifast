@@ -11,14 +11,24 @@ export const LIVE_QUERY_MAX_INTERVAL_IN_MS = 60_000;
  * polls keep failing.
  */
 export function getLiveQueryInterval(consecutiveErrors: number) {
+	return getBackoffInterval(consecutiveErrors, LIVE_QUERY_INTERVAL_IN_MS);
+}
+
+/** Same backoff from a custom base interval (never capped below the base). */
+export function getBackoffInterval(
+	consecutiveErrors: number,
+	baseIntervalInMs: number
+) {
 	return Math.min(
-		LIVE_QUERY_INTERVAL_IN_MS * 2 ** consecutiveErrors,
-		LIVE_QUERY_MAX_INTERVAL_IN_MS
+		baseIntervalInMs * 2 ** consecutiveErrors,
+		Math.max(LIVE_QUERY_MAX_INTERVAL_IN_MS, baseIntervalInMs)
 	);
 }
 
 interface UseLiveQueryOptions<T> {
 	enabled?: boolean;
+	/** Polling interval while healthy (default 5s). */
+	intervalInMs?: number;
 	queryFn: () => Promise<T>;
 	queryKey: QueryKey;
 	serverData: T;
@@ -40,6 +50,7 @@ interface UseLiveQueryOptions<T> {
  */
 export function useLiveQuery<T>({
 	enabled = true,
+	intervalInMs = LIVE_QUERY_INTERVAL_IN_MS,
 	queryFn,
 	queryKey,
 	serverData,
@@ -67,9 +78,9 @@ export function useLiveQuery<T>({
 		},
 		initialData: serverData,
 		enabled,
-		staleTime: LIVE_QUERY_INTERVAL_IN_MS,
+		staleTime: intervalInMs,
 		refetchInterval: enabled
-			? () => getLiveQueryInterval(consecutiveErrors.current)
+			? () => getBackoffInterval(consecutiveErrors.current, intervalInMs)
 			: false,
 		refetchIntervalInBackground: false,
 		refetchOnWindowFocus: true,

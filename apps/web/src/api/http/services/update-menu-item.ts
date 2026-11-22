@@ -6,9 +6,11 @@ interface UpdateMenuItemRequest {
 	image: File | null;
 	isAvailable: boolean;
 	itemId: string;
+	minStockQuantity?: number | null;
 	name: string;
 	price: number;
 	restaurant: string;
+	stockQuantity?: number | null;
 }
 
 export async function updateMenuItem({
@@ -20,6 +22,8 @@ export async function updateMenuItem({
 	categoryId,
 	isAvailable,
 	image,
+	stockQuantity,
+	minStockQuantity,
 }: UpdateMenuItemRequest) {
 	const formData = new FormData();
 
@@ -27,6 +31,21 @@ export async function updateMenuItem({
 	formData.set("price", String(price));
 	formData.set("categoryId", categoryId);
 	formData.set("isAvailable", String(isAvailable));
+
+	// Missing keeps the current balance; empty string stops tracking stock.
+	if (stockQuantity !== undefined) {
+		formData.set(
+			"stockQuantity",
+			stockQuantity === null ? "" : String(stockQuantity)
+		);
+	}
+
+	if (minStockQuantity !== undefined) {
+		formData.set(
+			"minStockQuantity",
+			minStockQuantity === null ? "" : String(minStockQuantity)
+		);
+	}
 
 	if (description) {
 		formData.set("description", description);

@@ -24,6 +24,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useFormState } from "@/hooks/use-form-state";
 import { createMenuItemAction } from "../~actions/actions";
+import { StockField } from "./stock-field";
 
 interface CreateItemSheetProps {
 	categories: { id: string; name: string }[];
@@ -109,6 +110,8 @@ export function CreateItemSheet({ categories }: CreateItemSheetProps) {
 							</p>
 						)}
 					</div>
+
+					<StockField errors={errors} />
 
 					<div className="space-y-3">
 						<Label htmlFor="categoryId">Categoria</Label>

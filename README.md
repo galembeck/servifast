@@ -97,6 +97,24 @@ The web app will be available at `http://localhost:3000`.
 - Create, update, and delete projects per restaurant
 - List all projects within a restaurant
 
+### Sales dashboard
+- KPIs (revenue, sales, average ticket, items sold) for today, the current week or the current month, compared with the previous period at the same point
+- Revenue chart (hourly for today, daily for week/month), revenue by payment method and top 5 items
+- Refreshes every 30 s; periods follow the restaurant's time zone (America/Sao_Paulo)
+- "Produtos e ticket" view: average ticket card (consolidated revenue ÷ completed services) and a Top 10 products table by units sold, with each product's share of units, revenue and the average ticket of the services that ordered it
+
+### Stock
+- Each menu item may track units on hand (empty = not tracked, e.g. made-to-order dishes); the balance shows on the products screen
+- Closing a tab decrements the stock 1:1 with the units sold (cancelled items excluded), in the same transaction as the payment
+- Optional minimum stock per item: items at or below the minimum raise a yellow (low) alert, sold-out items a red (critical) one — shown in the header bell, on the "Estoque" page (filter by balance × minimum) and as badges on the menu (`GET /restaurants/:slug/stock/alerts`, OWNER + MANAGER)
+- Items without enough stock can't be added to a tab, and a tab can't be closed while a product lacks stock (409 `INSUFFICIENT_STOCK`, nothing is recorded); the balance never goes negative
+
+### Cash register
+- Open the day's cash register with an opening float
+- Record supplies (suprimento) and withdrawals (sangria) — a withdrawal can't exceed the cash in the drawer
+- Close with a blind count: the expected amount (float + supplies − withdrawals + cash sales) is only revealed after the count, along with the difference
+- Every movement is an immutable audit record identifying the operator
+
 ### Billing
 - View billing details: $20/project + $10/member (excluding billing role)
 
@@ -114,13 +132,14 @@ Roles: **Owner**, **Manager**, **Waiter**, **Cashier**, **Kitchen**, **Billing**
 | Manage tables        | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ |
 | Manage menu          | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Manage shift/register | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| View sales dashboard | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 | View billing         | ✅ | ✅ | ❌ | ✅ | ❌ | ✅ | ❌ |
 | Manage billing       | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 
 > ⚠️ = allowed with conditions
 >
 > - Only the restaurant's **owner** (`ownerId`) may transfer ownership or update the restaurant, even as OWNER
-> - `Order`/`Table`/`Menu`/`Shift` are permission subjects defined ahead of their features — no routes/models exist for them yet
+> - `Shift` gates the cash register (open, supplies/withdrawals, close)
 > - `Project` is a leftover from the original SaaS template's multi-tenancy layer, not part of the restaurant domain — only OWNER can touch it via `manage all`; see `docs/PERMISSIONS.md` for the full breakdown
 
 ## Commands

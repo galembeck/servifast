@@ -92,9 +92,156 @@ describe("POST /restaurants/:slug/menu-items", () => {
 		expect(JSON.parse(response.body)).toMatchObject({ itemId });
 		expect(prismaMock.menuItem.create).toHaveBeenCalledWith(
 			expect.objectContaining({
-				data: expect.objectContaining({ priceInCents: 590, imageUrl: null }),
+				data: expect.objectContaining({
+					priceInCents: 590,
+					imageUrl: null,
+					stockQuantity: null,
+				}),
 			})
 		);
+	});
+
+	it.each([
+		["24", 24],
+		["0", 0],
+		["", null],
+	])("stores the initial stock %j as %j", async (stockQuantity, expected) => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "OWNER");
+		const categoryId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.menuCategory.findUnique.mockResolvedValue({
+			id: categoryId,
+			restaurantId: restaurant.id,
+		});
+		prismaMock.menuItem.create.mockResolvedValue({ id: faker.string.uuid() });
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/restaurants/${restaurant.slug}/menu-items`,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"content-type": `multipart/form-data; boundary=${BOUNDARY}`,
+			},
+			payload: buildMultipartBody({
+				name: "Chopp",
+				price: "12",
+				categoryId,
+				stockQuantity,
+			}),
+		});
+
+		expect(response.statusCode).toBe(201);
+		expect(prismaMock.menuItem.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({ stockQuantity: expected }),
+			})
+		);
+	});
+
+	it("stores the minimum stock together with the stock", async () => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "OWNER");
+		const categoryId = faker.string.uuid();
+		const token = signToken(app, userId);
+
+		prismaMock.menuCategory.findUnique.mockResolvedValue({
+			id: categoryId,
+			restaurantId: restaurant.id,
+		});
+		prismaMock.menuItem.create.mockResolvedValue({ id: faker.string.uuid() });
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/restaurants/${restaurant.slug}/menu-items`,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"content-type": `multipart/form-data; boundary=${BOUNDARY}`,
+			},
+			payload: buildMultipartBody({
+				name: "Chopp",
+				price: "12",
+				categoryId,
+				stockQuantity: "40",
+				minStockQuantity: "10",
+			}),
+		});
+
+		expect(response.statusCode).toBe(201);
+		expect(prismaMock.menuItem.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					stockQuantity: 40,
+					minStockQuantity: 10,
+				}),
+			})
+		);
+	});
+
+	it.each([
+		["without stock", { minStockQuantity: "5" }, "MIN_STOCK_REQUIRES_TRACKING"],
+		[
+			"with empty stock",
+			{ stockQuantity: "", minStockQuantity: "5" },
+			"MIN_STOCK_REQUIRES_TRACKING",
+		],
+		[
+			"negative",
+			{ stockQuantity: "10", minStockQuantity: "-1" },
+			"Validation error",
+		],
+	])("returns 400 for a minimum stock %s and creates nothing", async (_label, fields, message) => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "OWNER");
+		const token = signToken(app, userId);
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/restaurants/${restaurant.slug}/menu-items`,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"content-type": `multipart/form-data; boundary=${BOUNDARY}`,
+			},
+			payload: buildMultipartBody({
+				name: "Chopp",
+				price: "12",
+				categoryId: faker.string.uuid(),
+				...fields,
+			}),
+		});
+
+		expect(response.statusCode).toBe(400);
+		expect(JSON.parse(response.body)).toMatchObject({ message });
+		expect(prismaMock.menuItem.create).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		"-1",
+		"1.5",
+		"abc",
+	])("returns 400 validation error for an invalid stock (%s)", async (stockQuantity) => {
+		const userId = faker.string.uuid();
+		const { restaurant } = mockMembership(userId, "OWNER");
+		const token = signToken(app, userId);
+
+		const response = await app.inject({
+			method: "POST",
+			url: `/restaurants/${restaurant.slug}/menu-items`,
+			headers: {
+				Authorization: `Bearer ${token}`,
+				"content-type": `multipart/form-data; boundary=${BOUNDARY}`,
+			},
+			payload: buildMultipartBody({
+				name: "Chopp",
+				price: "12",
+				categoryId: faker.string.uuid(),
+				stockQuantity,
+			}),
+		});
+
+		expect(response.statusCode).toBe(400);
+		expect(prismaMock.menuItem.create).not.toHaveBeenCalled();
 	});
 
 	it("creates a menu item with an image upload without hanging", async () => {

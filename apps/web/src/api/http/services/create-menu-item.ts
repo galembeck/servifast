@@ -4,9 +4,11 @@ interface CreateMenuItemRequest {
 	categoryId: string;
 	description: string | null;
 	image: File | null;
+	minStockQuantity?: number | null;
 	name: string;
 	price: number;
 	restaurant: string;
+	stockQuantity?: number | null;
 }
 
 export async function createMenuItem({
@@ -16,12 +18,29 @@ export async function createMenuItem({
 	price,
 	categoryId,
 	image,
+	stockQuantity,
+	minStockQuantity,
 }: CreateMenuItemRequest) {
 	const formData = new FormData();
 
 	formData.set("name", name);
 	formData.set("price", String(price));
 	formData.set("categoryId", categoryId);
+
+	// Missing keeps the current balance; empty string stops tracking stock.
+	if (stockQuantity !== undefined) {
+		formData.set(
+			"stockQuantity",
+			stockQuantity === null ? "" : String(stockQuantity)
+		);
+	}
+
+	if (minStockQuantity !== undefined) {
+		formData.set(
+			"minStockQuantity",
+			minStockQuantity === null ? "" : String(minStockQuantity)
+		);
+	}
 
 	if (description) {
 		formData.set("description", description);

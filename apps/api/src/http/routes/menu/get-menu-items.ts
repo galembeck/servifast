@@ -43,6 +43,8 @@ export async function getMenuItemsRoute(app: FastifyInstance) {
 									imageUrl: z.string().nullable(),
 									categoryId: z.uuid(),
 									isAvailable: z.boolean(),
+									stockQuantity: z.number().int().nullable(),
+									minStockQuantity: z.number().int().nullable(),
 								})
 							),
 						}),

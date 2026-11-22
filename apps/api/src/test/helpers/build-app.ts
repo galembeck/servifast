@@ -13,6 +13,11 @@ import { requestPasswordRecoveryRoute } from "@/http/routes/auth/request-passwor
 import { resetPasswordRoute } from "@/http/routes/auth/reset-password";
 import { createExpenseRoute } from "@/http/routes/billing/create-expense";
 import { getBillingRoute } from "@/http/routes/billing/get-billing";
+import { closeCashRegisterRoute } from "@/http/routes/cash-register/close-cash-register";
+import { createCashRegisterTransactionRoute } from "@/http/routes/cash-register/create-cash-register-transaction";
+import { getCashRegisterRoute } from "@/http/routes/cash-register/get-cash-register";
+import { getCashRegisterTransactionsRoute } from "@/http/routes/cash-register/get-cash-register-transactions";
+import { openCashRegisterRoute } from "@/http/routes/cash-register/open-cash-register";
 import { acceptInviteRoute } from "@/http/routes/invites/accept-invite";
 import { createInviteRoute } from "@/http/routes/invites/create-invite";
 import { getInviteRoute } from "@/http/routes/invites/get-invite";
@@ -32,6 +37,9 @@ import { deleteMenuItemRoute } from "@/http/routes/menu/delete-menu-item";
 import { getMenuCategoriesRoute } from "@/http/routes/menu/get-menu-categories";
 import { getMenuItemsRoute } from "@/http/routes/menu/get-menu-items";
 import { updateMenuItemRoute } from "@/http/routes/menu/update-menu-item";
+import { getAverageTicketRoute } from "@/http/routes/reports/get-average-ticket";
+import { getSalesReportRoute } from "@/http/routes/reports/get-sales-report";
+import { getTopProductsRoute } from "@/http/routes/reports/get-top-products";
 import { createRestaurantRoute } from "@/http/routes/restaurants/create-restaurant";
 import { deleteRestaurantRoute } from "@/http/routes/restaurants/delete-restaurant";
 import { getMembershipRoute } from "@/http/routes/restaurants/get-membership";
@@ -39,6 +47,7 @@ import { getRestaurantRoute } from "@/http/routes/restaurants/get-restaurant";
 import { getRestaurantsRoute } from "@/http/routes/restaurants/get-restaurants";
 import { transferOwnershipRoute } from "@/http/routes/restaurants/transfer-ownership";
 import { updateRestaurantRoute } from "@/http/routes/restaurants/update-restaurant";
+import { getStockAlertsRoute } from "@/http/routes/stock/get-stock-alerts";
 import { createTableRoute } from "@/http/routes/tables/create-table";
 import { getTableBillRoute } from "@/http/routes/tables/get-table-bill";
 import { getTablesRoute } from "@/http/routes/tables/get-tables";
@@ -112,6 +121,15 @@ export async function buildApp() {
 	await app.register(deleteMenuItemRoute);
 	await app.register(getBillingRoute);
 	await app.register(createExpenseRoute);
+	await app.register(getSalesReportRoute);
+	await app.register(getAverageTicketRoute);
+	await app.register(getStockAlertsRoute);
+	await app.register(getTopProductsRoute);
+	await app.register(getCashRegisterRoute);
+	await app.register(openCashRegisterRoute);
+	await app.register(createCashRegisterTransactionRoute);
+	await app.register(getCashRegisterTransactionsRoute);
+	await app.register(closeCashRegisterRoute);
 
 	await app.ready();
 

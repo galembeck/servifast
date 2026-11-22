@@ -91,6 +91,19 @@ export const prismaMock = {
 		update: vi.fn(),
 		delete: vi.fn(),
 	},
+	payment: {
+		aggregate: vi.fn(),
+	},
+	cashRegisterSession: {
+		findFirst: vi.fn(),
+		findMany: vi.fn(),
+		create: vi.fn(),
+		updateMany: vi.fn(),
+	},
+	cashRegisterTransaction: {
+		findMany: vi.fn(),
+		create: vi.fn(),
+	},
 	token: {
 		findUnique: vi.fn(),
 		create: vi.fn(),
@@ -101,6 +114,7 @@ export const prismaMock = {
 		create: vi.fn(),
 	},
 	$transaction: vi.fn(),
+	$queryRawUnsafe: vi.fn(),
 };
 
 export function resetPrismaMocks() {

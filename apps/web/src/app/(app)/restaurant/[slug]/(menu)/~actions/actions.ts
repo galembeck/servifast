@@ -9,12 +9,33 @@ import { deleteMenuItem } from "@/api/http/services/delete-menu-item";
 import { updateMenuItem } from "@/api/http/services/update-menu-item";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
 
+/** Empty = null (stock not tracked / no low-stock alert). */
+const optionalQuantityField = z
+	.string()
+	.optional()
+	.transform((value) => (value?.trim() ? Number(value) : null))
+	.refine(
+		(value) => value === null || (Number.isInteger(value) && value >= 0),
+		{ message: "Informe um número inteiro maior ou igual a zero" }
+	);
+
 function extractErrorState(error: unknown) {
 	if (error instanceof HTTPError) {
-		const { title, description } = error.data as {
+		const { title, description, message } = error.data as {
 			description: string | null;
+			message?: string;
 			title: string | null;
 		};
+
+		if (message === "MIN_STOCK_REQUIRES_TRACKING") {
+			return {
+				success: false as const,
+				title: "Informe o estoque",
+				description:
+					"O estoque mínimo só pode ser definido para produtos com controle de estoque.",
+				errors: null,
+			};
+		}
 
 		return { success: false as const, title, description, errors: null };
 	}
@@ -73,6 +94,8 @@ const createMenuItemSchema = z.object({
 	price: z.coerce
 		.number({ error: "Informe um preço válido" })
 		.positive({ message: "O preço deve ser maior que zero" }),
+	stockQuantity: optionalQuantityField,
+	minStockQuantity: optionalQuantityField,
 });
 
 export async function createMenuItemAction(data: FormData) {
@@ -84,7 +107,15 @@ export async function createMenuItemAction(data: FormData) {
 		return { success: false, title: null, description: null, errors };
 	}
 
-	const { name, description, price, categoryId, image } = result.data;
+	const {
+		name,
+		description,
+		price,
+		categoryId,
+		image,
+		stockQuantity,
+		minStockQuantity,
+	} = result.data;
 
 	const currentRestaurant = await getCurrentRestaurant();
 
@@ -97,6 +128,8 @@ export async function createMenuItemAction(data: FormData) {
 			price,
 			categoryId,
 			image,
+			stockQuantity,
+			minStockQuantity,
 		});
 
 		revalidateTag(`${currentRestaurant}/menu-items`, "max");
@@ -128,6 +161,8 @@ const updateMenuItemSchema = z.object({
 	price: z.coerce
 		.number({ error: "Informe um preço válido" })
 		.positive({ message: "O preço deve ser maior que zero" }),
+	stockQuantity: optionalQuantityField,
+	minStockQuantity: optionalQuantityField,
 });
 
 export async function updateMenuItemAction(data: FormData) {
@@ -147,6 +182,8 @@ export async function updateMenuItemAction(data: FormData) {
 		categoryId,
 		markAsUnavailable,
 		image,
+		stockQuantity,
+		minStockQuantity,
 	} = result.data;
 
 	const currentRestaurant = await getCurrentRestaurant();
@@ -162,6 +199,8 @@ export async function updateMenuItemAction(data: FormData) {
 			categoryId,
 			isAvailable: !markAsUnavailable,
 			image,
+			stockQuantity,
+			minStockQuantity,
 		});
 
 		revalidateTag(`${currentRestaurant}/menu-items`, "max");
