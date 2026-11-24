@@ -28,6 +28,7 @@ export async function createExpenseRoute(app: FastifyInstance) {
 						category: z.string().min(1),
 						amount: z.number().positive(),
 						date: z.coerce.date(),
+						type: z.enum(["EXPENSE", "INCOME"]).default("EXPENSE"),
 					}),
 					response: {
 						201: z.object({
@@ -53,7 +54,17 @@ export async function createExpenseRoute(app: FastifyInstance) {
 					);
 				}
 
-				const { category, amount, date } = request.body;
+				const { category, amount, date, type } = request.body;
+				if (
+					type === "INCOME" &&
+					(membership.role !== "OWNER" || restaurant.ownerId !== userId)
+				) {
+					throw new UnauthorizedError(
+						"Acesso negado",
+						AuthException.UNAUTHORIZED,
+						"Somente o dono pode registrar receitas."
+					);
+				}
 
 				const expense = await prisma.expense.create({
 					data: {
@@ -61,6 +72,7 @@ export async function createExpenseRoute(app: FastifyInstance) {
 						category,
 						amountInCents: Math.round(amount * 100),
 						occurredAt: date,
+						type,
 					},
 				});
 

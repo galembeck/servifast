@@ -14,6 +14,8 @@ import {
 	validatorCompiler,
 	type ZodTypeProvider,
 } from "fastify-type-provider-zod";
+import { getFinancialEntriesRoute } from "@/http/routes/billing/get-financial-entries";
+import { payFinancialEntryRoute } from "@/http/routes/billing/pay-financial-entry";
 import { errorHandler } from "./http/error-handler";
 import { authenticateWithPasswordRoute } from "./http/routes/auth/authenticate-with-password";
 import { requestPasswordRecoveryRoute } from "./http/routes/auth/request-password-recovery";
@@ -110,7 +112,7 @@ app.register(fastifyJwt, {
 	secret: env.JWT_SECRET ?? "",
 });
 
-app.register(fastifyCors);
+app.register(fastifyCors, { methods: ["GET", "HEAD", "POST", "PATCH"] });
 
 app.register(fastifyMultipart, {
 	attachFieldsToBody: false,
@@ -177,6 +179,8 @@ app.register(deleteMenuItemRoute);
 
 app.register(getBillingRoute);
 app.register(createExpenseRoute);
+app.register(getFinancialEntriesRoute);
+app.register(payFinancialEntryRoute);
 
 app.register(getSalesReportRoute);
 app.register(getAverageTicketRoute);

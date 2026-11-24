@@ -13,6 +13,8 @@ import { requestPasswordRecoveryRoute } from "@/http/routes/auth/request-passwor
 import { resetPasswordRoute } from "@/http/routes/auth/reset-password";
 import { createExpenseRoute } from "@/http/routes/billing/create-expense";
 import { getBillingRoute } from "@/http/routes/billing/get-billing";
+import { getFinancialEntriesRoute } from "@/http/routes/billing/get-financial-entries";
+import { payFinancialEntryRoute } from "@/http/routes/billing/pay-financial-entry";
 import { closeCashRegisterRoute } from "@/http/routes/cash-register/close-cash-register";
 import { createCashRegisterTransactionRoute } from "@/http/routes/cash-register/create-cash-register-transaction";
 import { getCashRegisterRoute } from "@/http/routes/cash-register/get-cash-register";
@@ -73,7 +75,9 @@ export async function buildApp() {
 	await app.register(fastifyJwt, {
 		secret: process.env.JWT_SECRET ?? "test-secret",
 	});
-	await app.register(fastifyCors);
+	await app.register(fastifyCors, {
+		methods: ["GET", "HEAD", "POST", "PATCH"],
+	});
 	await app.register(fastifyMultipart);
 
 	await app.register(createAccountRoute);
@@ -121,6 +125,8 @@ export async function buildApp() {
 	await app.register(deleteMenuItemRoute);
 	await app.register(getBillingRoute);
 	await app.register(createExpenseRoute);
+	await app.register(getFinancialEntriesRoute);
+	await app.register(payFinancialEntryRoute);
 	await app.register(getSalesReportRoute);
 	await app.register(getAverageTicketRoute);
 	await app.register(getStockAlertsRoute);

@@ -1,6 +1,7 @@
 import type { AuthException } from "./auth";
 import type { BusinessException } from "./business/business";
 import type { CashRegisterException } from "./cash-register";
+import type { FinancialEntryException } from "./financial-entry";
 import type { InviteException } from "./invite";
 import type { KdsException } from "./kds";
 import type { MenuException } from "./menu";
@@ -11,6 +12,7 @@ import type { TableException } from "./table";
 import type { UserException } from "./user";
 
 export type AppException =
+	| FinancialEntryException
 	| AuthException
 	| RestaurantException
 	| UserException

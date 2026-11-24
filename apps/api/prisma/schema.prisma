@@ -266,11 +266,27 @@ model KdsEvent {
   @@map("kds_events")
 }
 
+enum FinancialEntryType {
+  EXPENSE
+  INCOME
+}
+
+enum FinancialEntryStatus {
+  LEGACY
+  PENDING
+  PAID
+  RECEIVED
+}
+
 model Expense {
   id            String   @id @default(uuid())
   category      String
   amountInCents Int      @map("amount_in_cents")
   occurredAt    DateTime @map("occurred_at")
+  type          FinancialEntryType @default(EXPENSE)
+  status        FinancialEntryStatus @default(PENDING)
+  settledOn     DateTime? @db.Date @map("settled_on")
+  settledAt     DateTime? @db.Timestamptz(3) @map("settled_at")
 
   createdAt DateTime @default(now()) @map("created_at")
 

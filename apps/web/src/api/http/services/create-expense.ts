@@ -5,6 +5,7 @@ interface CreateExpenseRequest {
 	category: string;
 	date: string;
 	restaurant: string;
+	type?: "EXPENSE" | "INCOME";
 }
 
 export async function createExpense({
@@ -12,12 +13,14 @@ export async function createExpense({
 	category,
 	amount,
 	date,
+	type,
 }: CreateExpenseRequest) {
 	await api.post(`restaurants/${restaurant}/expenses`, {
 		json: {
 			category,
 			amount,
 			date,
+			type,
 		},
 	});
 }

@@ -1,12 +1,13 @@
 "use server";
 
 import { HTTPError } from "ky";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { createExpense } from "@/api/http/services/create-expense";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
 
 const createExpenseSchema = z.object({
+	type: z.enum(["EXPENSE", "INCOME"]).default("EXPENSE"),
 	amount: z.coerce
 		.number({ error: "Informe um valor válido" })
 		.positive({ message: "O valor deve ser maior que zero" }),
@@ -24,7 +25,7 @@ export async function createExpenseAction(data: FormData) {
 		return { success: false, title: null, description: null, errors };
 	}
 
-	const { category, customCategory, amount, date } = result.data;
+	const { category, customCategory, amount, date, type } = result.data;
 
 	const finalCategory =
 		category === "Outros" && customCategory?.trim()
@@ -40,9 +41,11 @@ export async function createExpenseAction(data: FormData) {
 			category: finalCategory,
 			amount,
 			date,
+			type,
 		});
 
 		revalidateTag(`${currentRestaurant}/expenses`, "max");
+		revalidatePath(`/restaurant/${currentRestaurant}/billing`);
 	} catch (error) {
 		if (error instanceof HTTPError) {
 			const { title, description } = error.data as {
@@ -63,8 +66,8 @@ export async function createExpenseAction(data: FormData) {
 
 	return {
 		success: true,
-		title: "Despesa registrada!",
-		description: "A despesa foi registrada com sucesso.",
+		title: "Lançamento registrado!",
+		description: "O lançamento foi registrado com sucesso.",
 		errors: null,
 	};
 }

@@ -36,9 +36,14 @@ const EXPENSE_CATEGORIES = [
 	"Outros",
 ];
 
-export function CreateExpenseSheet() {
+export function CreateExpenseSheet({
+	allowIncome = false,
+}: {
+	allowIncome?: boolean;
+}) {
 	const [open, setOpen] = useState(false);
 	const [category, setCategory] = useState("");
+	const submitLabel = allowIncome ? "Salvar lançamento" : "Salvar despesa";
 
 	const [
 		{ success, title, description, errors },
@@ -54,13 +59,15 @@ export function CreateExpenseSheet() {
 			<SheetTrigger asChild>
 				<Button size="sm">
 					<Plus className="mr-2 size-4" />
-					Registrar despesa
+					{allowIncome ? "Registrar lançamento" : "Registrar despesa"}
 				</Button>
 			</SheetTrigger>
 
 			<SheetContent>
 				<SheetHeader>
-					<SheetTitle>Registrar despesa</SheetTitle>
+					<SheetTitle>
+						{allowIncome ? "Registrar lançamento" : "Registrar despesa"}
+					</SheetTitle>
 				</SheetHeader>
 
 				<form
@@ -82,6 +89,20 @@ export function CreateExpenseSheet() {
 						</Alert>
 					)}
 
+					{allowIncome && (
+						<div className="space-y-3">
+							<Label htmlFor="entry-type">Tipo</Label>
+							<Select defaultValue="EXPENSE" name="type">
+								<SelectTrigger id="entry-type">
+									<SelectValue />
+								</SelectTrigger>
+								<SelectContent>
+									<SelectItem value="EXPENSE">Despesa</SelectItem>
+									<SelectItem value="INCOME">Receita</SelectItem>
+								</SelectContent>
+							</Select>
+						</div>
+					)}
 					<div className="space-y-3">
 						<Label htmlFor="amount">Valor (R$)</Label>
 
@@ -153,7 +174,7 @@ export function CreateExpenseSheet() {
 								Salvando...
 							</span>
 						) : (
-							"Salvar despesa"
+							submitLabel
 						)}
 					</Button>
 				</form>
