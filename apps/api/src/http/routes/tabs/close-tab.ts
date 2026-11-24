@@ -1,20 +1,30 @@
 /** biome-ignore-all lint/suspicious/useAwait: required by @fastify */
 
+import { MAX_PAYMENT_IN_CENTS } from "@repo/checkout";
 import { getUserPermissions } from "@repo/rbac/src/utils/get-user-permissions";
 import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { AuthException } from "@/http/_errors/exceptions/auth";
-import { PaymentException } from "@/http/_errors/exceptions/payment";
 import { TabException } from "@/http/_errors/exceptions/tab";
 import { auth } from "@/http/middlewares/auth";
+import { calculatePayment } from "@/lib/checkout-payment";
 import { prisma } from "@/lib/prisma";
 import { decrementStockForSale } from "@/lib/stock";
-import { BadRequestError } from "../_errors/bad-request-error";
 import { ConflictError } from "../_errors/conflict-error";
 import { ForbiddenError } from "../_errors/forbidden-error";
 import { NotFoundError } from "../_errors/not-found-error";
-import { UnprocessableEntityError } from "../_errors/unprocessable-entity-error";
+
+const adjustmentSchema = z.discriminatedUnion("type", [
+	z.object({
+		type: z.literal("FIXED"),
+		amountInCents: z.number().int().min(0).max(MAX_PAYMENT_IN_CENTS),
+	}),
+	z.object({
+		type: z.literal("PERCENT"),
+		basisPoints: z.number().int().min(0).max(10_000),
+	}),
+]);
 
 const paymentMethodSchema = z.enum([
 	"CASH",
@@ -37,7 +47,7 @@ export async function closeTabRoute(app: FastifyInstance) {
 					tags: ["Tabs"],
 					summary: "/restaurants/:slug/tabs/:tabId/close",
 					description:
-						'Checkout: registers the payment (cash, credit/debit card or PIX), closes the tab and sets the table back to FREE in a single transaction. Every item must be DELIVERED or CANCELLED first (409 TAB_HAS_PENDING_ITEMS otherwise). Closing decrements the stock of every tracked product 1:1 with the units sold; if any product lacks stock, nothing is recorded and it returns 409 INSUFFICIENT_STOCK (description lists the shortages, e.g. "Chopp ×1"). The amount is computed server-side from every non-cancelled item. For CASH, `receivedInCents` is required and must cover the total; the change is computed and stored.',
+						'Checkout: registers the payment (cash, credit/debit card or PIX), closes the tab and sets the table back to FREE in a single transaction. Every item must be DELIVERED or CANCELLED first (409 TAB_HAS_PENDING_ITEMS otherwise). Closing decrements the stock of every tracked product 1:1 with the units sold; if any product lacks stock, nothing is recorded and it returns 409 INSUFFICIENT_STOCK (description lists the shortages, e.g. "Chopp ×1"). The subtotal is computed server-side from every non-cancelled item. Optional serviceFee/discount accept FIXED amountInCents or PERCENT basisPoints (10% = 1000), both based on the subtotal and rounded half up. The adjusted total and calculation snapshot are stored on the payment; negative totals are rejected. For CASH, `receivedInCents` is required and must cover the total; the change is computed and stored.',
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -45,7 +55,14 @@ export async function closeTabRoute(app: FastifyInstance) {
 					}),
 					body: z.object({
 						method: paymentMethodSchema,
-						receivedInCents: z.number().int().positive().optional(),
+						receivedInCents: z
+							.number()
+							.int()
+							.min(0)
+							.max(MAX_PAYMENT_IN_CENTS)
+							.optional(),
+						serviceFee: adjustmentSchema.optional(),
+						discount: adjustmentSchema.optional(),
 					}),
 					response: {
 						200: z.object({
@@ -71,7 +88,7 @@ export async function closeTabRoute(app: FastifyInstance) {
 			},
 			async (request) => {
 				const { slug, tabId } = request.params;
-				const { method, receivedInCents } = request.body;
+				const { method, serviceFee, discount } = request.body;
 
 				const userId = await request.getCurrentUserId();
 				const { restaurant, membership } =
@@ -132,32 +149,10 @@ export async function closeTabRoute(app: FastifyInstance) {
 					);
 				}
 
-				const amountInCents = tab.items.reduce(
-					(total, item) => total + item.quantity * item.unitPriceInCents,
-					0
+				const { totals, cashReceived, changeInCents } = calculatePayment(
+					tab.items,
+					request.body
 				);
-
-				const isCash = method === "CASH";
-
-				if (isCash && receivedInCents === undefined) {
-					throw new BadRequestError(
-						"Received amount is required.",
-						PaymentException.CASH_RECEIVED_AMOUNT_REQUIRED,
-						"Cash payments must inform the amount received from the customer."
-					);
-				}
-
-				if (isCash && (receivedInCents ?? 0) < amountInCents) {
-					throw new UnprocessableEntityError(
-						"Insufficient cash amount.",
-						PaymentException.INSUFFICIENT_CASH_AMOUNT,
-						`The amount received does not cover the total of ${amountInCents} cents.`
-					);
-				}
-
-				const cashReceived = isCash ? (receivedInCents ?? null) : null;
-				const changeInCents =
-					cashReceived === null ? null : cashReceived - amountInCents;
 				const closedAt = new Date();
 
 				const payment = await prisma.$transaction(
@@ -191,7 +186,11 @@ export async function closeTabRoute(app: FastifyInstance) {
 						const createdPayment = await tx.payment.create({
 							data: {
 								method,
-								amountInCents,
+								...totals,
+								adjustments: {
+									...(serviceFee ? { serviceFee } : {}),
+									...(discount ? { discount } : {}),
+								},
 								receivedInCents: cashReceived,
 								changeInCents,
 								tabId,

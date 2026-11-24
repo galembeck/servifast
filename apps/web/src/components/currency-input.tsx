@@ -14,19 +14,26 @@ interface CurrencyInputProps
 	extends Omit<ComponentProps<typeof Input>, "name" | "onChange" | "value"> {
 	defaultValueInCents?: number;
 	name: string;
+	onValueChange?: (cents: number) => void;
+	valueInCents?: number;
 }
 
 export function CurrencyInput({
 	name,
 	defaultValueInCents = 0,
+	valueInCents,
+	onValueChange,
 	...props
 }: CurrencyInputProps) {
-	const [cents, setCents] = useState(defaultValueInCents);
+	const [internalCents, setCents] = useState(defaultValueInCents);
+	const cents = valueInCents ?? internalCents;
 
 	function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
 		const digits = event.target.value.replace(NON_DIGIT_PATTERN, "");
 
-		setCents(digits ? Number(digits) : 0);
+		const next = digits ? Number(digits) : 0;
+		setCents(next);
+		onValueChange?.(next);
 	}
 
 	return (

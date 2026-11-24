@@ -306,6 +306,10 @@ enum PaymentMethod {
 }
 
 model Payment {
+  subtotalInCents Int? @map("subtotal_in_cents")
+  serviceFeeInCents Int @default(0) @map("service_fee_in_cents")
+  discountInCents Int @default(0) @map("discount_in_cents")
+  adjustments Json?
   id              String        @id @default(uuid())
   method          PaymentMethod
   amountInCents   Int           @map("amount_in_cents")

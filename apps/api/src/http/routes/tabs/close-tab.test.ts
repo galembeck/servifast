@@ -419,4 +419,132 @@ describe("POST /restaurants/:slug/tabs/:tabId/close", () => {
 			message: "INVALID_TOKEN",
 		});
 	});
+	it.each([
+		[{ serviceFee: { type: "FIXED", amountInCents: 500 } }, 8050, 500, 0],
+		[{ serviceFee: { type: "PERCENT", basisPoints: 1000 } }, 8305, 755, 0],
+		[{ discount: { type: "FIXED", amountInCents: 1000 } }, 6550, 0, 1000],
+		[{ discount: { type: "PERCENT", basisPoints: 1250 } }, 6606, 0, 944],
+		[
+			{
+				serviceFee: { type: "PERCENT", basisPoints: 1000 },
+				discount: { type: "PERCENT", basisPoints: 2000 },
+			},
+			6795,
+			755,
+			1510,
+		],
+	])("persists adjusted payment and subtotal snapshot %j", async (adjustments, amount, fee, discount) => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		const tx = mockTransaction();
+		const { response } = await closeTab("OWNER", {
+			method: "PIX",
+			...adjustments,
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json().payment.amountInCents).toBe(amount);
+		expect(tx.payment.create).toHaveBeenCalledWith(
+			expect.objectContaining({
+				data: expect.objectContaining({
+					subtotalInCents: 7550,
+					serviceFeeInCents: fee,
+					discountInCents: discount,
+					amountInCents: amount,
+					adjustments,
+				}),
+			})
+		);
+	});
+	it("rejects a negative total before changing the tab or stock", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		const { response } = await closeTab("CASHIER", {
+			method: "PIX",
+			discount: { type: "FIXED", amountInCents: 10_000 },
+		});
+		expect(response.statusCode).toBe(422);
+		expect(response.json().message).toBe("INVALID_CHECKOUT_ADJUSTMENTS");
+		expect(prismaMock.$transaction).not.toHaveBeenCalled();
+	});
+	it.each([
+		{ serviceFee: { type: "FIXED", amountInCents: -1 } },
+		{ discount: { type: "FIXED", amountInCents: 0.5 } },
+		{ discount: { type: "PERCENT", basisPoints: 10_001 } },
+		{ serviceFee: { type: "PERCENT", basisPoints: 10.5 } },
+		{ serviceFee: { type: "OTHER", amountInCents: 100 } },
+	])("rejects invalid adjustments %j", async (adjustments) => {
+		const { response } = await closeTab("CASHIER", {
+			method: "PIX",
+			...adjustments,
+		});
+		expect(response.statusCode).toBe(400);
+		expect(prismaMock.$transaction).not.toHaveBeenCalled();
+	});
+	it.each([
+		"CREDIT_CARD",
+		"DEBIT_CARD",
+		"PIX",
+	])("charges adjusted total for %s and ignores cash tender", async (method) => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		mockTransaction();
+		const { response } = await closeTab("CASHIER", {
+			method,
+			receivedInCents: 10_000,
+			serviceFee: { type: "FIXED", amountInCents: 500 },
+			discount: { type: "FIXED", amountInCents: 1000 },
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json().payment).toMatchObject({
+			amountInCents: 7050,
+			receivedInCents: null,
+			changeInCents: null,
+		});
+	});
+	it("computes change from the adjusted cash total", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		mockTransaction();
+		const { response } = await closeTab("CASHIER", {
+			method: "CASH",
+			receivedInCents: 10_000,
+			serviceFee: { type: "PERCENT", basisPoints: 1000 },
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json().payment).toMatchObject({
+			amountInCents: 8305,
+			changeInCents: 1695,
+		});
+	});
+	it("rejects cash that covers only the old subtotal", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		const { response } = await closeTab("CASHIER", {
+			method: "CASH",
+			receivedInCents: 7550,
+			serviceFee: { type: "FIXED", amountInCents: 100 },
+		});
+		expect(response.statusCode).toBe(422);
+		expect(prismaMock.$transaction).not.toHaveBeenCalled();
+	});
+	it("allows a zero total with 100% discount and zero cash received", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		mockTransaction();
+		const { response } = await closeTab("OWNER", {
+			method: "CASH",
+			receivedInCents: 0,
+			discount: { type: "PERCENT", basisPoints: 10_000 },
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json().payment).toMatchObject({
+			amountInCents: 0,
+			changeInCents: 0,
+		});
+	});
+	it("ignores a client-supplied total and computes from server items", async () => {
+		prismaMock.tab.findUnique.mockResolvedValue(openTab);
+		mockTransaction();
+		const { response } = await closeTab("OWNER", {
+			method: "PIX",
+			amountInCents: 1,
+			subtotalInCents: 1,
+		});
+		expect(response.statusCode).toBe(200);
+		expect(response.json().payment.amountInCents).toBe(7550);
+	});
 });

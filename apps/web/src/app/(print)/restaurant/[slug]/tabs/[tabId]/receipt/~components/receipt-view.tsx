@@ -162,6 +162,14 @@ export function ReceiptView({ receipt }: ReceiptViewProps) {
 				<Divider />
 
 				<Row label="Subtotal" value={formatPrice(receipt.subtotalInCents)} />
+				<Row
+					label="Taxa de serviço"
+					value={formatPrice(receipt.serviceFeeInCents)}
+				/>
+				<Row
+					label="Desconto"
+					value={formatPrice(0 - receipt.discountInCents)}
+				/>
 				<Row bold label="TOTAL" value={formatPrice(payment.amountInCents)} />
 
 				<Divider />

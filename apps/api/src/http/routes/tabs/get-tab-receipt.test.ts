@@ -192,4 +192,25 @@ describe("GET /restaurants/:slug/tabs/:tabId/receipt", () => {
 			message: "INVALID_TOKEN",
 		});
 	});
+	it("shows the persisted checkout snapshot and adjusted total", async () => {
+		const tab = makeClosedTab();
+		prismaMock.tab.findUnique.mockResolvedValue({
+			...tab,
+			payment: {
+				...tab.payment,
+				subtotalInCents: 13_380,
+				serviceFeeInCents: 1000,
+				discountInCents: 500,
+				amountInCents: 13_880,
+			},
+		});
+		const response = await getReceipt("OWNER");
+		expect(response.statusCode).toBe(200);
+		expect(response.json().receipt).toMatchObject({
+			subtotalInCents: 13_380,
+			serviceFeeInCents: 1000,
+			discountInCents: 500,
+			payment: { amountInCents: 13_880 },
+		});
+	});
 });

@@ -1,4 +1,5 @@
 "use server";
+import type { CheckoutAdjustments } from "@repo/checkout";
 
 import { HTTPError } from "ky";
 import { revalidateTag } from "next/cache";
@@ -210,6 +211,8 @@ export async function deliverTabItemAction(tabId: string, itemId: string) {
 }
 
 const CLOSE_TAB_ERROR_MESSAGES: Record<string, string> = {
+	INVALID_CHECKOUT_ADJUSTMENTS:
+		"Confira a taxa e o desconto: o total não pode ser negativo.",
 	TAB_HAS_PENDING_ITEMS:
 		"Ainda há itens não entregues. Entregue ou cancele antes de fechar a conta.",
 	TAB_NOT_OPEN: "Esta comanda já foi fechada ou recebeu itens novos.",
@@ -229,7 +232,8 @@ function insufficientStockMessage(shortages: string | null | undefined) {
 export async function closeTabAction(
 	tabId: string,
 	method: PaymentMethod,
-	receivedInCents?: number
+	receivedInCents?: number,
+	adjustments: CheckoutAdjustments = {}
 ) {
 	// biome-ignore lint/style/noNonNullAssertion: always comes as string
 	const currentRestaurant = (await getCurrentRestaurant())!;
@@ -240,6 +244,8 @@ export async function closeTabAction(
 			tabId,
 			method,
 			receivedInCents,
+			serviceFee: adjustments.serviceFee,
+			discount: adjustments.discount,
 		});
 
 		revalidateTag(`${currentRestaurant}/tabs/${tabId}`, "max");

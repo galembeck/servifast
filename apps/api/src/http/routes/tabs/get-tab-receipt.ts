@@ -55,6 +55,8 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 									})
 								),
 								subtotalInCents: z.number(),
+								serviceFeeInCents: z.number(),
+								discountInCents: z.number(),
 								payment: z.object({
 									method: z.enum(["CASH", "CREDIT_CARD", "DEBIT_CARD", "PIX"]),
 									amountInCents: z.number(),
@@ -107,6 +109,9 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 								id: true,
 								method: true,
 								amountInCents: true,
+								subtotalInCents: true,
+								serviceFeeInCents: true,
+								discountInCents: true,
 								receivedInCents: true,
 								changeInCents: true,
 								createdAt: true,
@@ -148,7 +153,9 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 							closedAt,
 						},
 						items: lines,
-						subtotalInCents,
+						subtotalInCents: payment.subtotalInCents ?? subtotalInCents,
+						serviceFeeInCents: payment.serviceFeeInCents ?? 0,
+						discountInCents: payment.discountInCents ?? 0,
 						payment: {
 							method: payment.method,
 							amountInCents: payment.amountInCents,

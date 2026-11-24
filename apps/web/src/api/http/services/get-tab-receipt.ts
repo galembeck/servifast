@@ -3,6 +3,7 @@ import type { PaymentMethod } from "./close-tab";
 
 export interface TabReceipt {
 	code: string;
+	discountInCents: number;
 	items: {
 		menuItemId: string;
 		name: string;
@@ -19,6 +20,7 @@ export interface TabReceipt {
 		receivedInCents: number | null;
 	};
 	restaurant: { name: string };
+	serviceFeeInCents: number;
 	subtotalInCents: number;
 	tab: {
 		closedAt: string;

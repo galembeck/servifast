@@ -1,8 +1,9 @@
+import type { CheckoutAdjustments } from "@repo/checkout";
 import { api } from "../api-client";
 
 export type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "PIX";
 
-interface CloseTabRequest {
+interface CloseTabRequest extends CheckoutAdjustments {
 	method: PaymentMethod;
 	receivedInCents?: number;
 	restaurant: string;
@@ -25,12 +26,14 @@ interface CloseTabResponse {
 export async function closeTab({
 	method,
 	receivedInCents,
+	serviceFee,
+	discount,
 	restaurant,
 	tabId,
 }: CloseTabRequest) {
 	const result = await api
 		.post(`restaurants/${restaurant}/tabs/${tabId}/close`, {
-			json: { method, receivedInCents },
+			json: { method, receivedInCents, serviceFee, discount },
 		})
 		.json<CloseTabResponse>();
 

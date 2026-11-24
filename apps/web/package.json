@@ -11,6 +11,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@repo/checkout": "workspace:*",
     "@repo/env": "workspace:*",
     "@repo/rbac": "workspace:*",
     "@tanstack/react-query": "^5.100.14",

@@ -1,6 +1,12 @@
 "use client";
 
 import {
+	type CheckoutAdjustment,
+	type CheckoutAdjustments,
+	calculateCheckoutTotals,
+	checkoutTotalError,
+} from "@repo/checkout";
+import {
 	AlertTriangle,
 	Banknote,
 	CreditCard,
@@ -9,7 +15,7 @@ import {
 	Receipt,
 	Wallet,
 } from "lucide-react";
-import { useId, useState, useTransition } from "react";
+import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { PaymentMethod } from "@/api/http/services/close-tab";
 import type { TabItem } from "@/api/http/services/get-tab";
@@ -26,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { closeTabAction } from "../~actions/actions";
+import { CheckoutAdjustmentInput } from "./checkout-adjustment-input";
 
 const PAYMENT_METHODS: {
 	icon: typeof Banknote;
@@ -93,6 +100,24 @@ function suggestCashAmounts(totalInCents: number) {
 	return [...suggestions].sort((a, b) => a - b).slice(0, MAX_CASH_SUGGESTIONS);
 }
 
+function getCheckoutPreview(
+	subtotal: number,
+	adjustments: CheckoutAdjustments
+) {
+	try {
+		const totals = calculateCheckoutTotals(subtotal, adjustments);
+		return {
+			totals,
+			adjustmentError: checkoutTotalError(totals.amountInCents),
+		};
+	} catch (error) {
+		return {
+			totals: null,
+			adjustmentError:
+				error instanceof RangeError ? error.message : "Confira os ajustes.",
+		};
+	}
+}
 interface CloseTabDialogProps {
 	items: TabItem[];
 	tabId: string;
@@ -100,16 +125,33 @@ interface CloseTabDialogProps {
 
 export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 	const receivedInputId = useId();
+	const feeInputId = useId();
+	const submitting = useRef(false);
+	const [feeEnabled, setFeeEnabled] = useState(false);
+	const [serviceFee, setServiceFee] = useState<CheckoutAdjustment>({
+		type: "PERCENT",
+		basisPoints: 0,
+	});
+	const [discount, setDiscount] = useState<CheckoutAdjustment>({
+		type: "FIXED",
+		amountInCents: 0,
+	});
 	const [open, setOpen] = useState(false);
 	const [method, setMethod] = useState<PaymentMethod | null>(null);
 	const [receivedInput, setReceivedInput] = useState("");
 	const [isPending, startTransition] = useTransition();
 
 	const billableItems = items.filter((item) => item.status !== "CANCELLED");
-	const totalInCents = billableItems.reduce(
+	const subtotalInCents = billableItems.reduce(
 		(total, item) => total + item.quantity * item.unitPriceInCents,
 		0
 	);
+	const adjustments = { ...(feeEnabled ? { serviceFee } : {}), discount };
+	const { totals, adjustmentError } = getCheckoutPreview(
+		subtotalInCents,
+		adjustments
+	);
+	const totalInCents = totals?.amountInCents ?? 0;
 	const pendingItems = billableItems.filter(
 		(item) => item.status !== "DELIVERED"
 	);
@@ -121,13 +163,23 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 	const isCashInsufficient = isCash && (changeInCents ?? -1) < 0;
 	const hasPendingItems = pendingItems.length > 0;
 	const canConfirm =
-		method !== null && !hasPendingItems && !isCashInsufficient && !isPending;
+		method !== null &&
+		!hasPendingItems &&
+		!isCashInsufficient &&
+		!isPending &&
+		!adjustmentError;
 
 	function handleOpenChange(nextOpen: boolean) {
+		if (submitting.current) {
+			return;
+		}
 		setOpen(nextOpen);
 		if (!nextOpen) {
 			setMethod(null);
 			setReceivedInput("");
+			setFeeEnabled(false);
+			setServiceFee({ type: "PERCENT", basisPoints: 0 });
+			setDiscount({ type: "FIXED", amountInCents: 0 });
 		}
 	}
 
@@ -138,32 +190,38 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 	}
 
 	function handleConfirm() {
-		if (!method) {
+		if (!(method && canConfirm) || submitting.current) {
 			return;
 		}
 
+		submitting.current = true;
 		startTransition(async () => {
-			const result = await closeTabAction(
-				tabId,
-				method,
-				isCash ? (receivedInCents ?? undefined) : undefined
-			);
+			try {
+				const result = await closeTabAction(
+					tabId,
+					method,
+					isCash ? (receivedInCents ?? undefined) : undefined,
+					adjustments
+				);
 
-			if (!result.success) {
-				toast.error(result.title);
-				return;
+				if (!result.success) {
+					toast.error(result.title);
+					return;
+				}
+
+				const { changeInCents: change } = result.payment;
+				toast.success(result.title, {
+					description:
+						change === null
+							? "A mesa foi liberada."
+							: `Troco: ${formatPrice(change)}. A mesa foi liberada.`,
+				});
+				// The tab screen switches to its closed state, which offers the
+				// receipt and the way back to the tables.
+				setOpen(false);
+			} finally {
+				submitting.current = false;
 			}
-
-			const { changeInCents: change } = result.payment;
-			toast.success(result.title, {
-				description:
-					change === null
-						? "A mesa foi liberada."
-						: `Troco: ${formatPrice(change)}. A mesa foi liberada.`,
-			});
-			// The tab screen switches to its closed state, which offers the
-			// receipt and the way back to the tables.
-			setOpen(false);
 		});
 	}
 
@@ -176,7 +234,10 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 				</Button>
 			</DialogTrigger>
 
-			<DialogContent className="sm:max-w-md">
+			<DialogContent
+				className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+				showCloseButton={!isPending}
+			>
 				<DialogHeader>
 					<DialogTitle>Fechar conta</DialogTitle>
 					<DialogDescription>
@@ -186,15 +247,68 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 				</DialogHeader>
 
 				<div className="space-y-5">
-					<div className="flex items-baseline justify-between rounded-md border px-4 py-3">
-						<span className="text-muted-foreground text-sm">
-							Total ({billableItems.length}{" "}
-							{billableItems.length === 1 ? "item" : "itens"})
-						</span>
-						<span className="font-semibold text-2xl">
-							{formatPrice(totalInCents)}
-						</span>
-					</div>
+					<fieldset
+						className="space-y-3"
+						disabled={isPending || hasPendingItems}
+					>
+						<div className="flex items-center gap-2">
+							<input
+								checked={feeEnabled}
+								id={feeInputId}
+								onChange={(event) => setFeeEnabled(event.target.checked)}
+								type="checkbox"
+							/>
+							<Label htmlFor={feeInputId}>Incluir taxa de serviço</Label>
+						</div>
+						{feeEnabled && (
+							<CheckoutAdjustmentInput
+								label="Taxa de serviço"
+								onChange={setServiceFee}
+								value={serviceFee}
+							/>
+						)}
+						<CheckoutAdjustmentInput
+							label="Desconto"
+							onChange={setDiscount}
+							value={discount}
+						/>
+						<p className="text-muted-foreground text-xs">
+							Percentuais calculados sobre o subtotal.
+						</p>
+					</fieldset>
+					<dl
+						aria-label="Resumo do pagamento"
+						aria-live="polite"
+						className="space-y-2 rounded-md border px-4 py-3"
+					>
+						{[
+							["Subtotal", subtotalInCents],
+							["Taxa de serviço", totals?.serviceFeeInCents],
+							["Desconto", totals ? 0 - totals.discountInCents : undefined],
+							["Total", totals?.amountInCents],
+						].map(([label, value]) => (
+							<div
+								className="flex items-baseline justify-between gap-4"
+								key={label}
+							>
+								<dt>{label}</dt>
+								<dd
+									className={
+										label === "Total"
+											? "font-semibold text-2xl"
+											: "tabular-nums"
+									}
+								>
+									{typeof value === "number" ? formatPrice(value) : "—"}
+								</dd>
+							</div>
+						))}
+					</dl>
+					{adjustmentError && (
+						<p className="text-destructive text-sm" role="alert">
+							{adjustmentError}
+						</p>
+					)}
 
 					{hasPendingItems && (
 						<div
@@ -225,7 +339,10 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 						</div>
 					)}
 
-					<fieldset className="space-y-2" disabled={hasPendingItems}>
+					<fieldset
+						className="space-y-2"
+						disabled={hasPendingItems || isPending}
+					>
 						<legend className="font-medium text-sm">Forma de pagamento</legend>
 						<div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
 							{PAYMENT_METHODS.map(({ value, label, icon: Icon }) => (
@@ -250,6 +367,7 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 								<Label htmlFor={receivedInputId}>Valor recebido (R$)</Label>
 								<Input
 									autoFocus
+									disabled={isPending}
 									id={receivedInputId}
 									inputMode="decimal"
 									onChange={(event) => setReceivedInput(event.target.value)}
@@ -301,6 +419,7 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 
 				<DialogFooter>
 					<Button
+						disabled={isPending}
 						onClick={() => handleOpenChange(false)}
 						type="button"
 						variant="outline"
