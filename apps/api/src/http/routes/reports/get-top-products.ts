@@ -22,7 +22,7 @@ export async function getTopProductsRoute(app: FastifyInstance) {
 					tags: ["Reports"],
 					summary: "/restaurants/:slug/reports/top-products",
 					description:
-						"Top 10 products of a calendar period (America/Sao_Paulo) by units sold, consolidated from completed services only (closed tabs with a payment; cancelled items excluded). Ties are broken by revenue, then name. Each product carries its share of all units sold, its revenue, how many services ordered it and the average ticket of those services.",
+						"Top 10 products of a calendar period (America/Sao_Paulo) by units sold, consolidated from tabs with receipts in the period (one item count per tab, split receipts summed; cancelled items excluded). Ties are broken by revenue, then name. Each product carries its share of all units sold, its revenue, how many services ordered it and the average ticket of those services.",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),

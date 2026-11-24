@@ -123,7 +123,8 @@ describe("GET /restaurants/:slug/reports/top-products", () => {
 			NOW.toISOString(),
 		]);
 		// Completed services only, cancelled items out, Top 10 by units.
-		expect(sql).toContain("JOIN payments p");
+		expect(sql).toContain("JOIN paid_tabs p");
+		expect(sql).toContain("SUM(p.amount_in_cents)");
 		expect(sql).toContain("<> 'CANCELLED'");
 		expect(sql).toContain(
 			"ORDER BY pi.quantity DESC, pi.revenue DESC, mi.name ASC"

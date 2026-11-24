@@ -99,7 +99,7 @@ export function SalesDashboard({
 					comparisonLabel={comparison}
 					current={kpis.salesCount}
 					format={formatInteger}
-					label="Vendas (comandas fechadas)"
+					label="Vendas (comandas com pagamento)"
 					previous={previousKpis.salesCount}
 				/>
 				<KpiCard

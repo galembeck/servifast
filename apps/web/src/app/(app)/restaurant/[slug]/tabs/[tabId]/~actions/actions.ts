@@ -1,10 +1,15 @@
 "use server";
 import type { CheckoutAdjustments } from "@repo/checkout";
-
 import { HTTPError } from "ky";
-import { revalidateTag } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { z } from "zod";
 import { addTabItem } from "@/api/http/services/add-tab-item";
+import {
+	createBillSplit,
+	payBillInvoice,
+	previewBillSplit,
+	type SplitRequest,
+} from "@/api/http/services/bill-split";
 import { cancelTabItem } from "@/api/http/services/cancel-tab-item";
 import { closeTab, type PaymentMethod } from "@/api/http/services/close-tab";
 import { deliverTabItem } from "@/api/http/services/deliver-tab-item";
@@ -330,4 +335,68 @@ export async function requestBillAction(tabId: string) {
 	revalidateTag(`${currentRestaurant}/tables`, "max");
 
 	return { success: true, title: "Conta pedida!" };
+}
+function splitError(error: unknown) {
+	if (error instanceof HTTPError) {
+		const data = error.data as
+			| { description?: string; title?: string; message?: string }
+			| undefined;
+		if (data?.message === "INSUFFICIENT_STOCK") {
+			return insufficientStockMessage(data.description);
+		}
+		return (
+			data?.description ??
+			data?.title ??
+			"Não foi possível concluir a operação."
+		);
+	}
+	return "Não foi possível conectar ao servidor. Tente novamente.";
+}
+export async function previewSplitAction(tabId: string, input: SplitRequest) {
+	try {
+		const restaurant = await getCurrentRestaurant();
+		if (!restaurant) {
+			throw new Error("Missing restaurant");
+		}
+		const result = await previewBillSplit(restaurant, tabId, input);
+		return { success: true as const, ...result };
+	} catch (error) {
+		return { success: false as const, title: splitError(error) };
+	}
+}
+function refreshSplit(restaurant: string, tabId: string) {
+	revalidateTag(`${restaurant}/tabs/${tabId}`, "max");
+	revalidateTag(`${restaurant}/tables`, "max");
+	revalidateTag(`${restaurant}/menu-items`, "max");
+	revalidatePath(`/restaurant/${restaurant}/tabs/${tabId}`);
+}
+export async function createSplitAction(tabId: string, input: SplitRequest) {
+	try {
+		const restaurant = await getCurrentRestaurant();
+		if (!restaurant) {
+			throw new Error("Missing restaurant");
+		}
+		const result = await createBillSplit(restaurant, tabId, input);
+		refreshSplit(restaurant, tabId);
+		return { success: true as const, ...result };
+	} catch (error) {
+		return { success: false as const, title: splitError(error) };
+	}
+}
+export async function payInvoiceAction(
+	tabId: string,
+	id: string,
+	input: { method: PaymentMethod; receivedInCents?: number }
+) {
+	try {
+		const restaurant = await getCurrentRestaurant();
+		if (!restaurant) {
+			throw new Error("Missing restaurant");
+		}
+		const result = await payBillInvoice(restaurant, tabId, id, input);
+		refreshSplit(restaurant, tabId);
+		return { success: true as const, ...result };
+	} catch (error) {
+		return { success: false as const, title: splitError(error) };
+	}
 }

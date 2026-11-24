@@ -33,6 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { closeTabAction } from "../~actions/actions";
 import { CheckoutAdjustmentInput } from "./checkout-adjustment-input";
+import { SplitBillBuilder } from "./split-bill-builder";
 
 const PAYMENT_METHODS: {
 	icon: typeof Banknote;
@@ -120,10 +121,15 @@ function getCheckoutPreview(
 }
 interface CloseTabDialogProps {
 	items: TabItem[];
+	restaurant: string;
 	tabId: string;
 }
 
-export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
+export function CloseTabDialog({
+	items,
+	tabId,
+	restaurant,
+}: CloseTabDialogProps) {
 	const receivedInputId = useId();
 	const feeInputId = useId();
 	const submitting = useRef(false);
@@ -418,6 +424,14 @@ export function CloseTabDialog({ items, tabId }: CloseTabDialogProps) {
 				</div>
 
 				<DialogFooter>
+					<SplitBillBuilder
+						adjustments={adjustments}
+						disabled={hasPendingItems || Boolean(adjustmentError) || isPending}
+						items={items}
+						onCreated={() => setOpen(false)}
+						restaurant={restaurant}
+						tabId={tabId}
+					/>
 					<Button
 						disabled={isPending}
 						onClick={() => handleOpenChange(false)}

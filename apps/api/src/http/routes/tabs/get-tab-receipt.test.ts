@@ -41,7 +41,7 @@ describe("GET /restaurants/:slug/tabs/:tabId/receipt", () => {
 	const soda = { id: faker.string.uuid(), name: "Refrigerante Lata" };
 
 	function makeClosedTab(overrides: Record<string, unknown> = {}) {
-		return {
+		const result = {
 			customerName: "Juliana",
 			peopleCount: 3,
 			openedAt: new Date(),
@@ -63,6 +63,7 @@ describe("GET /restaurants/:slug/tabs/:tabId/receipt", () => {
 			},
 			...overrides,
 		};
+		return { ...result, payments: result.payment ? [result.payment] : [] };
 	}
 
 	function getReceipt(role: Role) {
@@ -196,13 +197,15 @@ describe("GET /restaurants/:slug/tabs/:tabId/receipt", () => {
 		const tab = makeClosedTab();
 		prismaMock.tab.findUnique.mockResolvedValue({
 			...tab,
-			payment: {
-				...tab.payment,
-				subtotalInCents: 13_380,
-				serviceFeeInCents: 1000,
-				discountInCents: 500,
-				amountInCents: 13_880,
-			},
+			payments: [
+				{
+					...tab.payment,
+					subtotalInCents: 13_380,
+					serviceFeeInCents: 1000,
+					discountInCents: 500,
+					amountInCents: 13_880,
+				},
+			],
 		});
 		const response = await getReceipt("OWNER");
 		expect(response.statusCode).toBe(200);

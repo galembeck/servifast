@@ -13,6 +13,7 @@ import { AddTabItemSheet } from "./add-tab-item-sheet";
 import { CloseTabDialog } from "./close-tab-dialog";
 import { RequestBillButton } from "./request-bill-button";
 import { SendToKitchenButton } from "./send-to-kitchen-button";
+import { SplitBillPanel } from "./split-bill-panel";
 import { TabItemsList } from "./tab-items-list";
 
 interface TabLiveViewProps {
@@ -51,15 +52,19 @@ export function TabLiveView({
 
 	const [isBillOpen, setIsBillOpen] = useState(false);
 	const isOpen = tab.closedAt === null;
-	const canViewThisBill = canViewBill && isOpen;
-	const canAddItems = canCreateOrders && isOpen;
-	const canManageOrders = canUpdateOrders && isOpen;
-	const canForceCancelItems = canForceCancelOrders && isOpen;
+	const canViewThisBill = canViewBill && isOpen && !tab.checkoutLocked;
+	const canAddItems = canCreateOrders && isOpen && !tab.checkoutLocked;
+	const canManageOrders = canUpdateOrders && isOpen && !tab.checkoutLocked;
+	const canForceCancelItems =
+		canForceCancelOrders && isOpen && !tab.checkoutLocked;
 	const canDeliverItems = canDeliverOrders && isOpen;
-	const canCloseThisTab = canCloseTab && isOpen;
+	const canCloseThisTab = canCloseTab && isOpen && !tab.checkoutLocked;
 	const isBillRequested = tab.table.status === "BILL_REQUESTED";
 	const canRequestThisBill =
-		canRequestBill && isOpen && tab.table.status === "OCCUPIED";
+		canRequestBill &&
+		isOpen &&
+		tab.table.status === "OCCUPIED" &&
+		!tab.checkoutLocked;
 
 	const pendingItemsCount = tab.items.filter(
 		(item) => item.status === "RECEIVED" && item.sentToKitchenAt === null
@@ -118,13 +123,23 @@ export function TabLiveView({
 						)}
 						{canRequestThisBill && <RequestBillButton tabId={tab.id} />}
 						{canCloseThisTab && (
-							<CloseTabDialog items={tab.items} tabId={tab.id} />
+							<CloseTabDialog
+								items={tab.items}
+								restaurant={currentRestaurant}
+								tabId={tab.id}
+							/>
 						)}
 					</div>
 				)}
 			</div>
 
 			{isOffline && <OfflineIndicator />}
+
+			<SplitCheckout
+				canCloseTab={canCloseTab}
+				restaurant={currentRestaurant}
+				tab={tab}
+			/>
 
 			{!isOpen && (
 				<div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted px-4 py-3">
@@ -169,5 +184,22 @@ export function TabLiveView({
 				tabId={tab.id}
 			/>
 		</div>
+	);
+}
+
+function SplitCheckout({
+	tab,
+	canCloseTab,
+	restaurant,
+}: {
+	tab: Tab;
+	canCloseTab: boolean;
+	restaurant: string;
+}) {
+	if (!(tab.checkoutLocked && canCloseTab)) {
+		return null;
+	}
+	return (
+		<SplitBillPanel items={tab.items} restaurant={restaurant} tabId={tab.id} />
 	);
 }

@@ -35,6 +35,7 @@ export async function getTabRoute(app: FastifyInstance) {
 								peopleCount: z.number().nullable(),
 								openedAt: z.date(),
 								closedAt: z.date().nullable(),
+								checkoutLocked: z.boolean(),
 								tableId: z.uuid(),
 								table: z.object({
 									number: z.number(),
@@ -88,6 +89,7 @@ export async function getTabRoute(app: FastifyInstance) {
 				const tab = await prisma.tab.findUnique({
 					where: { id: tabId, restaurantId: restaurant.id },
 					include: {
+						split: { select: { id: true } },
 						table: { select: { number: true, status: true } },
 						items: {
 							orderBy: { createdAt: "asc" },
@@ -108,7 +110,7 @@ export async function getTabRoute(app: FastifyInstance) {
 					);
 				}
 
-				return { tab };
+				return { tab: { ...tab, checkoutLocked: Boolean(tab.split) } };
 			}
 		);
 }

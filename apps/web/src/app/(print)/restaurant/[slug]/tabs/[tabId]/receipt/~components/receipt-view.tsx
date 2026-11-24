@@ -77,7 +77,7 @@ interface ReceiptViewProps {
 export function ReceiptView({ receipt }: ReceiptViewProps) {
 	const [paperWidth, setPaperWidth] = useState<PaperWidth>(80);
 	const [issuedAt] = useState(() => new Date());
-	const { payment, tab } = receipt;
+	const { tab } = receipt;
 
 	return (
 		<main className="flex flex-1 flex-col items-center gap-4 bg-muted/40 p-4 print:block print:bg-white print:p-0">
@@ -170,23 +170,38 @@ export function ReceiptView({ receipt }: ReceiptViewProps) {
 					label="Desconto"
 					value={formatPrice(0 - receipt.discountInCents)}
 				/>
-				<Row bold label="TOTAL" value={formatPrice(payment.amountInCents)} />
+				<Row bold label="TOTAL" value={formatPrice(receipt.totalInCents)} />
 
 				<Divider />
 
-				<Row label="Pagamento" value={PAYMENT_METHOD_LABEL[payment.method]} />
-				{payment.receivedInCents !== null && (
-					<Row label="Recebido" value={formatPrice(payment.receivedInCents)} />
-				)}
-				{payment.changeInCents !== null && (
-					<Row label="Troco" value={formatPrice(payment.changeInCents)} />
-				)}
+				{receipt.payments.map((payment, index) => (
+					<div key={payment.id}>
+						<Row
+							label={
+								payment.invoiceName ??
+								(receipt.payments.length > 1
+									? `Parcela ${index + 1}`
+									: "Pagamento")
+							}
+							value={PAYMENT_METHOD_LABEL[payment.method]}
+						/>
+						<Row label="Pago" value={formatPrice(payment.amountInCents)} />
+						{payment.receivedInCents !== null && (
+							<Row
+								label="Recebido"
+								value={formatPrice(payment.receivedInCents)}
+							/>
+						)}
+						{payment.changeInCents !== null && (
+							<Row label="Troco" value={formatPrice(payment.changeInCents)} />
+						)}
+						{payment.cashierName && (
+							<Row label="Caixa" value={payment.cashierName} />
+						)}
+						<Divider />
+					</div>
+				))}
 
-				<Divider />
-
-				{payment.cashierName && (
-					<Row label="Caixa" value={payment.cashierName} />
-				)}
 				<Row label="Emitido em" value={formatDateTime(issuedAt)} />
 
 				<footer className="mt-2 text-center">

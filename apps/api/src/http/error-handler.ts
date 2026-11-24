@@ -12,6 +12,15 @@ type FastifyErrorHandler = FastifyInstance["errorHandler"];
 
 // biome-ignore lint/correctness/noUnusedFunctionParameters: required by @fastify error handler signature
 export const errorHandler: FastifyErrorHandler = (error, request, reply) => {
+	// The database guard also covers a mutation racing with split confirmation.
+	if (error instanceof Error && error.message.includes("BILL_SPLIT_LOCKED")) {
+		return reply.status(409).send({
+			statusCode: 409,
+			title: "Conta dividida",
+			message: "BILL_SPLIT_LOCKED",
+			description: "Os itens e ajustes desta divisão estão bloqueados.",
+		});
+	}
 	if (hasZodFastifySchemaValidationErrors(error)) {
 		return reply.status(400).send({
 			message: "Validation error",

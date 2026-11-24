@@ -11,14 +11,8 @@ export interface TabReceipt {
 		totalInCents: number;
 		unitPriceInCents: number;
 	}[];
-	payment: {
-		amountInCents: number;
-		cashierName: string | null;
-		changeInCents: number | null;
-		method: PaymentMethod;
-		paidAt: string;
-		receivedInCents: number | null;
-	};
+	payment: ReceiptPayment | null;
+	payments: ReceiptPayment[];
 	restaurant: { name: string };
 	serviceFeeInCents: number;
 	subtotalInCents: number;
@@ -29,6 +23,7 @@ export interface TabReceipt {
 		peopleCount: number | null;
 	};
 	table: { number: number };
+	totalInCents: number;
 }
 
 export async function getTabReceipt(slug: string, tabId: string) {
@@ -37,4 +32,16 @@ export async function getTabReceipt(slug: string, tabId: string) {
 		.json<{ receipt: TabReceipt }>();
 
 	return result.receipt;
+}
+
+export interface ReceiptPayment {
+	amountInCents: number;
+	cashierName: string | null;
+	changeInCents: number | null;
+	id: string;
+	invoiceName: string | null;
+	invoicePosition: number | null;
+	method: PaymentMethod;
+	paidAt: string;
+	receivedInCents: number | null;
 }

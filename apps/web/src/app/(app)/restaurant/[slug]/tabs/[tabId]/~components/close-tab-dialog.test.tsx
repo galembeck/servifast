@@ -10,6 +10,7 @@ import type { TabItem } from "@/api/http/services/get-tab";
 import { closeTabAction } from "../~actions/actions";
 import { CloseTabDialog } from "./close-tab-dialog";
 
+vi.mock("./split-bill-builder", () => ({ SplitBillBuilder: () => null }));
 vi.mock("../~actions/actions", () => ({ closeTabAction: vi.fn() }));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const item: TabItem = {
@@ -32,6 +33,7 @@ function show() {
 	render(
 		<CloseTabDialog
 			items={[item]}
+			restaurant="test"
 			tabId="00000000-0000-4000-8000-000000000003"
 		/>
 	);

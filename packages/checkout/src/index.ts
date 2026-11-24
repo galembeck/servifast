@@ -87,3 +87,134 @@ export function checkoutTotalError(amountInCents: number): string | null {
 	}
 	return null;
 }
+
+export interface SplitItem {
+	id: string;
+	quantity: number;
+	unitPriceInCents: number;
+}
+export interface SplitClient {
+	items: { itemId: string; quantity: number }[];
+	name: string;
+}
+export type BillSplitInput = CheckoutAdjustments &
+	(
+		| { mode: "PEOPLE"; people: number }
+		| { mode: "ITEMS"; clients: SplitClient[] }
+	);
+/** Largest remainders, ties by input position; optional caps prevent negative shares. */
+function apportion(amount: number, weights: number[], caps?: number[]) {
+	const source = weights.some(Boolean) ? weights : weights.map(() => 1);
+	const sum = source.reduce((a, b) => a + BigInt(b), BigInt(0));
+	const parts = source.map((weight, index) => {
+		const product = BigInt(amount) * BigInt(weight);
+		return {
+			index,
+			remainder: product % sum,
+			amount: Math.min(Number(product / sum), caps?.[index] ?? amount),
+		};
+	});
+	let left = amount - parts.reduce((total, p) => total + p.amount, 0);
+	const ranked = [...parts].sort(
+		(a, b) => Number(b.remainder - a.remainder) || a.index - b.index
+	);
+	while (left > 0) {
+		let changed = false;
+		for (const part of ranked) {
+			if (left > 0 && part.amount < (caps?.[part.index] ?? amount)) {
+				part.amount++;
+				left--;
+				changed = true;
+			}
+		}
+		if (!changed) {
+			throw new RangeError("Não foi possível distribuir os centavos.");
+		}
+	}
+	return parts.map((part) => part.amount);
+}
+export function splitCheckout(items: SplitItem[], input: BillSplitInput) {
+	const subtotal = items.reduce(
+		(sum, item) => sum + item.quantity * item.unitPriceInCents,
+		0
+	);
+	const totals = calculateCheckoutTotals(subtotal, input);
+	const error = checkoutTotalError(totals.amountInCents);
+	if (error) {
+		throw new RangeError(error);
+	}
+	if (input.mode === "PEOPLE") {
+		if (
+			!Number.isInteger(input.people) ||
+			input.people < 2 ||
+			input.people > 100
+		) {
+			throw new RangeError("Informe de 2 a 100 pessoas.");
+		}
+		return {
+			totals,
+			parts: apportion(
+				totals.amountInCents,
+				Array.from({ length: input.people }, () => 1)
+			).map((amountInCents, index) => ({
+				position: index + 1,
+				name: `Pessoa ${index + 1}`,
+				amountInCents,
+				subtotalInCents: null,
+				serviceFeeInCents: null,
+				discountInCents: null,
+				items: [] as SplitClient["items"],
+			})),
+		};
+	}
+	if (input.clients.length < 2 || input.clients.length > 100) {
+		throw new RangeError("Informe de 2 a 100 clientes.");
+	}
+	const eligible = new Map(items.map((item) => [item.id, item]));
+	const assigned = new Map<string, number>();
+	const weights = input.clients.map((client) => {
+		if (!client.name.trim() || client.items.length === 0) {
+			throw new RangeError("Atribua itens a cada cliente.");
+		}
+		const seen = new Set<string>();
+		return client.items.reduce((sum, allocation) => {
+			const item = eligible.get(allocation.itemId);
+			if (
+				!item ||
+				seen.has(item.id) ||
+				!Number.isInteger(allocation.quantity) ||
+				allocation.quantity <= 0
+			) {
+				throw new RangeError("Atribuição de itens inválida.");
+			}
+			seen.add(item.id);
+			assigned.set(item.id, (assigned.get(item.id) ?? 0) + allocation.quantity);
+			return sum + allocation.quantity * item.unitPriceInCents;
+		}, 0);
+	});
+	for (const item of items) {
+		if (assigned.get(item.id) !== item.quantity) {
+			throw new RangeError(
+				"Todas as unidades não canceladas devem ser atribuídas exatamente uma vez."
+			);
+		}
+	}
+	const fees = apportion(totals.serviceFeeInCents, weights);
+	const discounts = apportion(
+		totals.discountInCents,
+		weights,
+		weights.map((weight, i) => weight + (fees[i] ?? 0))
+	);
+	return {
+		totals,
+		parts: input.clients.map((client, i) => ({
+			position: i + 1,
+			name: client.name.trim(),
+			subtotalInCents: weights[i] ?? 0,
+			serviceFeeInCents: fees[i] ?? 0,
+			discountInCents: discounts[i] ?? 0,
+			amountInCents: (weights[i] ?? 0) + (fees[i] ?? 0) - (discounts[i] ?? 0),
+			items: client.items,
+		})),
+	};
+}

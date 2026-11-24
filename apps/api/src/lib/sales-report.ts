@@ -34,33 +34,35 @@ const IN_RANGE = (alias: string) =>
 const KPIS_SQL = `
 SELECT
 	COALESCE(SUM(p.amount_in_cents), 0)::bigint AS "revenueInCents",
-	COUNT(*)::int AS "salesCount",
+	COUNT(DISTINCT p.tab_id)::int AS "salesCount",
 	COALESCE((
 		SELECT SUM(oi.quantity)
 		FROM order_items oi
-		JOIN payments ip ON ip.tab_id = oi.tab_id
-		WHERE ${IN_RANGE("ip")} AND oi.status <> 'CANCELLED'
+		WHERE EXISTS (SELECT 1 FROM payments ip WHERE ip.tab_id = oi.tab_id AND ${IN_RANGE("ip")}) AND oi.status <> 'CANCELLED'
 	), 0)::int AS "itemsSold"
 FROM payments p
 WHERE ${IN_RANGE("p")}`;
 
 const SERIES_SQL = `
+WITH receipts AS (
+ SELECT p.*, ROW_NUMBER() OVER (PARTITION BY p.tab_id ORDER BY p.created_at, p.id) AS receipt_number
+ FROM payments p WHERE ${IN_RANGE("p")}
+)
 SELECT
 	to_char(
 		date_trunc($4, (p.created_at AT TIME ZONE 'UTC') AT TIME ZONE $5),
 		$6
 	) AS "bucket",
 	SUM(p.amount_in_cents)::bigint AS "revenueInCents",
-	COUNT(*)::int AS "salesCount"
-FROM payments p
-WHERE ${IN_RANGE("p")}
+	COUNT(DISTINCT CASE WHEN p.receipt_number = 1 THEN p.tab_id END)::int AS "salesCount"
+FROM receipts p
 GROUP BY 1`;
 
 const BY_METHOD_SQL = `
 SELECT
 	p.method::text AS "method",
 	SUM(p.amount_in_cents)::bigint AS "revenueInCents",
-	COUNT(*)::int AS "salesCount"
+	COUNT(DISTINCT p.tab_id)::int AS "salesCount"
 FROM payments p
 WHERE ${IN_RANGE("p")}
 GROUP BY p.method`;
@@ -72,29 +74,31 @@ SELECT
 	SUM(oi.quantity)::int AS "quantity",
 	SUM(oi.quantity * oi.unit_price_in_cents)::bigint AS "revenueInCents"
 FROM order_items oi
-JOIN payments p ON p.tab_id = oi.tab_id
 JOIN menu_items mi ON mi.id = oi.menu_item_id
-WHERE ${IN_RANGE("p")} AND oi.status <> 'CANCELLED'
+WHERE EXISTS (SELECT 1 FROM payments p WHERE p.tab_id = oi.tab_id AND ${IN_RANGE("p")}) AND oi.status <> 'CANCELLED'
 GROUP BY mi.id, mi.name
 ORDER BY "quantity" DESC, "revenueInCents" DESC, mi.name ASC
 LIMIT ${TOP_ITEMS_LIMIT}`;
 
 /*
- * Top products among completed services (tabs with a payment), cancelled
+ * Top products among tabs with receipts in the period, cancelled
  * items excluded. For each product: units, revenue, how many services ordered
  * it and the average ticket of those services (each tab counted once).
  */
 const TOP_PRODUCTS_SQL = `
-WITH sold AS (
+WITH paid_tabs AS (
+ SELECT p.tab_id, SUM(p.amount_in_cents)::bigint AS tab_total FROM payments p
+ WHERE ${IN_RANGE("p")} GROUP BY p.tab_id
+), sold AS (
 	SELECT
 		oi.menu_item_id,
 		oi.tab_id,
 		oi.quantity,
 		oi.quantity * oi.unit_price_in_cents AS revenue,
-		p.amount_in_cents AS tab_total
+		p.tab_total
 	FROM order_items oi
-	JOIN payments p ON p.tab_id = oi.tab_id
-	WHERE ${IN_RANGE("p")} AND oi.status <> 'CANCELLED'
+	JOIN paid_tabs p ON p.tab_id = oi.tab_id
+	WHERE oi.status <> 'CANCELLED'
 ),
 per_item AS (
 	SELECT
@@ -196,7 +200,7 @@ export interface RawQueryClient {
 }
 
 /**
- * KPIs of completed services (tabs with a payment) between `start` and `end`.
+ * KPIs of tabs with receipts in the period between `start` and `end`.
  * Shared by the sales dashboard and the average-ticket report so both always
  * show the same number.
  */

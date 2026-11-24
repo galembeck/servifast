@@ -30,6 +30,7 @@ interface GetTabResponse {
 		peopleCount: number | null;
 		openedAt: string;
 		closedAt: string | null;
+		checkoutLocked: boolean;
 		tableId: string;
 		table: {
 			number: number;

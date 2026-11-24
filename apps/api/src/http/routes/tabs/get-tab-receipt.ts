@@ -15,6 +15,17 @@ import { NotFoundError } from "../_errors/not-found-error";
 
 /** Short human-readable receipt code, derived from the payment id. */
 const RECEIPT_CODE_LENGTH = 8;
+const receiptPaymentSchema = z.object({
+	id: z.uuid(),
+	method: z.enum(["CASH", "CREDIT_CARD", "DEBIT_CARD", "PIX"]),
+	amountInCents: z.number(),
+	receivedInCents: z.number().nullable(),
+	changeInCents: z.number().nullable(),
+	paidAt: z.date(),
+	cashierName: z.string().nullable(),
+	invoiceName: z.string().nullable(),
+	invoicePosition: z.number().nullable(),
+});
 
 export async function getTabReceiptRoute(app: FastifyInstance) {
 	app
@@ -57,14 +68,9 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 								subtotalInCents: z.number(),
 								serviceFeeInCents: z.number(),
 								discountInCents: z.number(),
-								payment: z.object({
-									method: z.enum(["CASH", "CREDIT_CARD", "DEBIT_CARD", "PIX"]),
-									amountInCents: z.number(),
-									receivedInCents: z.number().nullable(),
-									changeInCents: z.number().nullable(),
-									paidAt: z.date(),
-									cashierName: z.string().nullable(),
-								}),
+								payment: receiptPaymentSchema.nullable(),
+								payments: z.array(receiptPaymentSchema),
+								totalInCents: z.number(),
 							}),
 						}),
 					},
@@ -104,7 +110,16 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 								menuItem: { select: { id: true, name: true } },
 							},
 						},
-						payment: {
+						split: {
+							select: {
+								subtotalInCents: true,
+								serviceFeeInCents: true,
+								discountInCents: true,
+								amountInCents: true,
+							},
+						},
+						payments: {
+							orderBy: [{ createdAt: "asc" }, { id: "asc" }],
 							select: {
 								id: true,
 								method: true,
@@ -116,6 +131,7 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 								changeInCents: true,
 								createdAt: true,
 								paidBy: { select: { name: true } },
+								invoice: { select: { name: true, position: true } },
 							},
 						},
 					},
@@ -129,9 +145,10 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 					);
 				}
 
-				const { closedAt, payment } = tab;
+				const { closedAt, payments } = tab;
+				const payment = payments[0];
 
-				if (closedAt === null || payment === null) {
+				if (closedAt === null || !payment) {
 					throw new ConflictError(
 						"Tab is not closed.",
 						TabException.TAB_NOT_CLOSED,
@@ -140,6 +157,17 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 				}
 
 				const { lines, subtotalInCents } = groupBillItems(tab.items);
+				const receiptPayments = payments.map((p) => ({
+					id: p.id,
+					method: p.method,
+					amountInCents: p.amountInCents,
+					receivedInCents: p.receivedInCents,
+					changeInCents: p.changeInCents,
+					paidAt: p.createdAt,
+					cashierName: p.paidBy.name,
+					invoiceName: p.invoice?.name ?? null,
+					invoicePosition: p.invoice?.position ?? null,
+				}));
 
 				return {
 					receipt: {
@@ -153,17 +181,18 @@ export async function getTabReceiptRoute(app: FastifyInstance) {
 							closedAt,
 						},
 						items: lines,
-						subtotalInCents: payment.subtotalInCents ?? subtotalInCents,
-						serviceFeeInCents: payment.serviceFeeInCents ?? 0,
-						discountInCents: payment.discountInCents ?? 0,
-						payment: {
-							method: payment.method,
-							amountInCents: payment.amountInCents,
-							receivedInCents: payment.receivedInCents,
-							changeInCents: payment.changeInCents,
-							paidAt: payment.createdAt,
-							cashierName: payment.paidBy.name,
-						},
+						subtotalInCents:
+							tab.split?.subtotalInCents ??
+							payment.subtotalInCents ??
+							subtotalInCents,
+						serviceFeeInCents:
+							tab.split?.serviceFeeInCents ?? payment.serviceFeeInCents ?? 0,
+						discountInCents:
+							tab.split?.discountInCents ?? payment.discountInCents ?? 0,
+						payment:
+							payments.length === 1 ? (receiptPayments[0] ?? null) : null,
+						payments: receiptPayments,
+						totalInCents: payments.reduce((sum, p) => sum + p.amountInCents, 0),
 					},
 				};
 			}

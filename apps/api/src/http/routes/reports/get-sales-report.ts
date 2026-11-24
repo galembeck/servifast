@@ -31,7 +31,7 @@ export async function getSalesReportRoute(app: FastifyInstance) {
 					tags: ["Reports"],
 					summary: "/restaurants/:slug/reports/sales",
 					description:
-						"Sales consolidated for a calendar period in the restaurant's time zone (America/Sao_Paulo): `today` (hourly series), `week` (from Monday, daily series) or `month` (from the 1st, daily series). Returns KPIs (revenue, number of sales, average ticket, items sold), the same KPIs for the previous period cut at the same elapsed time, the revenue series (future buckets are null, empty past buckets are 0), revenue by payment method and the top 5 items. A sale is a payment of a closed tab; cancelled items are ignored.",
+						"Sales consolidated for a calendar period in the restaurant's time zone (America/Sao_Paulo): `today` (hourly series), `week` (from Monday, daily series) or `month` (from the 1st, daily series). Returns KPIs (revenue, number of sales, average ticket, items sold), the same KPIs for the previous period cut at the same elapsed time, the revenue series (future buckets are null, empty past buckets are 0), revenue by payment method and the top 5 items. Revenue is the sum of actual receipts; a tab is counted once per period even with split payments. Items are counted once per tab; cancelled items are ignored.",
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),

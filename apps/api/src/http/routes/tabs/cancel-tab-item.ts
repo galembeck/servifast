@@ -7,6 +7,7 @@ import { z } from "zod";
 import { AuthException } from "@/http/_errors/exceptions/auth";
 import { TabException } from "@/http/_errors/exceptions/tab";
 import { auth } from "@/http/middlewares/auth";
+import { assertUnsplitTab } from "@/lib/bill-split";
 import { prisma } from "@/lib/prisma";
 import { ConflictError } from "../_errors/conflict-error";
 import { ForbiddenError } from "../_errors/forbidden-error";
@@ -71,6 +72,7 @@ export async function cancelTabItemRoute(app: FastifyInstance) {
 					);
 				}
 
+				await assertUnsplitTab(prisma, tabId, restaurant.id);
 				const orderItem = await prisma.orderItem.findUnique({
 					where: { id: itemId, tabId, restaurantId: restaurant.id },
 					include: { tab: { select: { closedAt: true } } },

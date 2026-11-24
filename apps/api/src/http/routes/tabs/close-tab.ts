@@ -6,6 +6,7 @@ import type { FastifyInstance } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { z } from "zod";
 import { AuthException } from "@/http/_errors/exceptions/auth";
+import { PaymentException } from "@/http/_errors/exceptions/payment";
 import { TabException } from "@/http/_errors/exceptions/tab";
 import { auth } from "@/http/middlewares/auth";
 import { calculatePayment } from "@/lib/checkout-payment";
@@ -108,6 +109,7 @@ export async function closeTabRoute(app: FastifyInstance) {
 					where: { id: tabId, restaurantId: restaurant.id },
 					select: {
 						closedAt: true,
+						split: { select: { id: true } },
 						tableId: true,
 						items: {
 							where: { status: { not: "CANCELLED" } },
@@ -126,6 +128,14 @@ export async function closeTabRoute(app: FastifyInstance) {
 						"Tab not found.",
 						TabException.TAB_NOT_FOUND,
 						"The tab with the specified ID was not found in this restaurant."
+					);
+				}
+
+				if (tab.split) {
+					throw new ConflictError(
+						"Conta dividida",
+						PaymentException.BILL_SPLIT_LOCKED,
+						"Pague as parcelas da divisão existente."
 					);
 				}
 
@@ -164,11 +174,12 @@ export async function closeTabRoute(app: FastifyInstance) {
 							where: {
 								id: tabId,
 								closedAt: null,
+								split: { is: null },
 								items: {
 									none: { status: { in: [...PENDING_ITEM_STATUSES] } },
 								},
 							},
-							data: { closedAt },
+							data: { closedAt, stockDebitedAt: closedAt },
 						});
 
 						if (result.count === 0) {

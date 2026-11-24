@@ -8,6 +8,7 @@ import { AuthException } from "@/http/_errors/exceptions/auth";
 import { MenuException } from "@/http/_errors/exceptions/menu";
 import { TabException } from "@/http/_errors/exceptions/tab";
 import { auth } from "@/http/middlewares/auth";
+import { assertUnsplitTab } from "@/lib/bill-split";
 import { prisma } from "@/lib/prisma";
 import { BadRequestError } from "../_errors/bad-request-error";
 import { ConflictError } from "../_errors/conflict-error";
@@ -71,6 +72,7 @@ export async function addTabItemRoute(app: FastifyInstance) {
 					);
 				}
 
+				await assertUnsplitTab(prisma, tabId, restaurant.id);
 				const tab = await prisma.tab.findUnique({
 					where: { id: tabId, restaurantId: restaurant.id },
 				});

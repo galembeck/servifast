@@ -92,6 +92,7 @@ export const prismaMock = {
 		update: vi.fn(),
 		delete: vi.fn(),
 	},
+	billSplit: { findFirst: vi.fn(), findUnique: vi.fn() },
 	payment: {
 		aggregate: vi.fn(),
 	},
