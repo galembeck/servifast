@@ -5,11 +5,18 @@ import {
 	getCurrentMembership,
 	getCurrentRestaurant,
 } from "@/providers/auth-provider";
+import { parseSalesPeriod } from "../dashboard/~components/period";
 import { BillingDetails } from "./~components/billing-details";
+import { CashFlowDashboard } from "./~components/cash-flow-dashboard";
 import { CreateExpenseSheet } from "./~components/create-expense-sheet";
 import { FinancialEntries } from "./~components/financial-entries";
 
-export default async function RestaurantBillingPage() {
+export default async function RestaurantBillingPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ period?: string }>;
+}) {
+	const period = parseSalesPeriod((await searchParams).period);
 	const permissions = await ability();
 	const slug = await getCurrentRestaurant();
 	const membership = await getCurrentMembership();
@@ -32,7 +39,10 @@ export default async function RestaurantBillingPage() {
 
 			<div className="space-y-4">
 				{isOwner && slug && (
-					<FinancialEntries entries={entries} restaurant={slug} />
+					<>
+						<CashFlowDashboard period={period} slug={slug} />
+						<FinancialEntries entries={entries} restaurant={slug} />
+					</>
 				)}
 				{canGetBillingDetails && <BillingDetails />}
 			</div>

@@ -1,4 +1,5 @@
 "use client";
+import { useQueryClient } from "@tanstack/react-query";
 import { HTTPError } from "ky";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useRef, useState } from "react";
@@ -43,6 +44,7 @@ export function PayEntryDialog({
 	restaurant: string;
 }) {
 	const router = useRouter();
+	const queryClient = useQueryClient();
 	const [open, setOpen] = useState(false);
 	const [date, setDate] = useState("");
 	const [error, setError] = useState<string | null>(null);
@@ -63,6 +65,9 @@ export function PayEntryDialog({
 		try {
 			await payFinancialEntry(restaurant, entry.id, date);
 			setOpen(false);
+			await queryClient.invalidateQueries({
+				queryKey: ["cash-flow", restaurant],
+			});
 			router.refresh();
 		} catch (cause) {
 			const detail =

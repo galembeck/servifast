@@ -2,13 +2,9 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { ReportPeriodSelector } from "@/components/report-period-selector";
 import { cn } from "@/lib/utils";
-import { PERIOD_LABELS } from "./format";
-import { parseSalesPeriod, SALES_PERIODS } from "./period";
-
-const SEGMENT_ITEM =
-	"rounded-md px-4 py-1.5 font-medium text-muted-foreground text-sm transition-colors hover:text-foreground";
-const SEGMENT_ITEM_ACTIVE = "bg-background text-foreground shadow-sm";
+import { parseSalesPeriod } from "./period";
 
 /**
  * Sub-tabs (overview / products) and the period selector. Each keeps the
@@ -46,25 +42,7 @@ export function DashboardNav({ slug }: { slug: string }) {
 				})}
 			</nav>
 
-			<nav
-				aria-label="Período"
-				className="inline-flex rounded-lg border bg-muted/40 p-1"
-			>
-				{SALES_PERIODS.map((option) => (
-					<Link
-						aria-current={option === period ? "page" : undefined}
-						className={cn(
-							SEGMENT_ITEM,
-							option === period && SEGMENT_ITEM_ACTIVE
-						)}
-						href={`${pathname}?period=${option}`}
-						key={option}
-						scroll={false}
-					>
-						{PERIOD_LABELS[option]}
-					</Link>
-				))}
-			</nav>
+			<ReportPeriodSelector period={period} />
 		</div>
 	);
 }

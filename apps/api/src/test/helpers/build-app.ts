@@ -40,6 +40,7 @@ import { getMenuCategoriesRoute } from "@/http/routes/menu/get-menu-categories";
 import { getMenuItemsRoute } from "@/http/routes/menu/get-menu-items";
 import { updateMenuItemRoute } from "@/http/routes/menu/update-menu-item";
 import { getAverageTicketRoute } from "@/http/routes/reports/get-average-ticket";
+import { getCashFlowRoute } from "@/http/routes/reports/get-cash-flow";
 import { getSalesReportRoute } from "@/http/routes/reports/get-sales-report";
 import { getTopProductsRoute } from "@/http/routes/reports/get-top-products";
 import { createRestaurantRoute } from "@/http/routes/restaurants/create-restaurant";
@@ -128,6 +129,7 @@ export async function buildApp() {
 	await app.register(getFinancialEntriesRoute);
 	await app.register(payFinancialEntryRoute);
 	await app.register(getSalesReportRoute);
+	await app.register(getCashFlowRoute);
 	await app.register(getAverageTicketRoute);
 	await app.register(getStockAlertsRoute);
 	await app.register(getTopProductsRoute);

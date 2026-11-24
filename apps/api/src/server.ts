@@ -16,6 +16,7 @@ import {
 } from "fastify-type-provider-zod";
 import { getFinancialEntriesRoute } from "@/http/routes/billing/get-financial-entries";
 import { payFinancialEntryRoute } from "@/http/routes/billing/pay-financial-entry";
+import { getCashFlowRoute } from "@/http/routes/reports/get-cash-flow";
 import { errorHandler } from "./http/error-handler";
 import { authenticateWithPasswordRoute } from "./http/routes/auth/authenticate-with-password";
 import { requestPasswordRecoveryRoute } from "./http/routes/auth/request-password-recovery";
@@ -183,6 +184,7 @@ app.register(getFinancialEntriesRoute);
 app.register(payFinancialEntryRoute);
 
 app.register(getSalesReportRoute);
+app.register(getCashFlowRoute);
 app.register(getAverageTicketRoute);
 app.register(getStockAlertsRoute);
 app.register(getTopProductsRoute);
