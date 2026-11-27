@@ -15,10 +15,13 @@ import {
 	Receipt,
 	Wallet,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useId, useRef, useState, useTransition } from "react";
 import { toast } from "sonner";
+import type { BillSplit } from "@/api/http/services/bill-split";
 import type { PaymentMethod } from "@/api/http/services/close-tab";
 import type { TabItem } from "@/api/http/services/get-tab";
+import { CurrencyInput } from "@/components/currency-input";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -31,7 +34,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { closeTabAction } from "../~actions/actions";
+import { closeTabAction, partialPaymentAction } from "../~actions/actions";
 import { CheckoutAdjustmentInput } from "./checkout-adjustment-input";
 import { SplitBillBuilder } from "./split-bill-builder";
 
@@ -120,7 +123,9 @@ function getCheckoutPreview(
 	}
 }
 interface CloseTabDialogProps {
+	checkout?: BillSplit;
 	items: TabItem[];
+	onPayment?: (checkout: BillSplit) => void;
 	restaurant: string;
 	tabId: string;
 }
@@ -129,7 +134,17 @@ export function CloseTabDialog({
 	items,
 	tabId,
 	restaurant,
+	checkout: initialCheckout,
+	onPayment,
 }: CloseTabDialogProps) {
+	const [paidCheckout, setPaidCheckout] = useState<BillSplit>();
+	const checkout = initialCheckout ?? paidCheckout;
+	const router = useRouter();
+	const partialId = useId();
+	const [partial, setPartial] = useState(false);
+	const [partialAmount, setPartialAmount] = useState(0);
+	const [error, setError] = useState<string | null>(null);
+	const attempt = useRef<{ key: string; id: string } | null>(null);
 	const receivedInputId = useId();
 	const feeInputId = useId();
 	const submitting = useRef(false);
@@ -153,27 +168,28 @@ export function CloseTabDialog({
 		0
 	);
 	const adjustments = { ...(feeEnabled ? { serviceFee } : {}), discount };
-	const { totals, adjustmentError } = getCheckoutPreview(
-		subtotalInCents,
-		adjustments
-	);
-	const totalInCents = totals?.amountInCents ?? 0;
+	const { totals, adjustmentError, balance, totalInCents, partialError } =
+		paymentPreview(
+			subtotalInCents,
+			adjustments,
+			checkout,
+			partial,
+			partialAmount
+		);
 	const pendingItems = billableItems.filter(
 		(item) => item.status !== "DELIVERED"
 	);
 
-	const isCash = method === "CASH";
-	const receivedInCents = parseAmountToCents(receivedInput);
-	const changeInCents =
-		receivedInCents === null ? null : receivedInCents - totalInCents;
-	const isCashInsufficient = isCash && (changeInCents ?? -1) < 0;
+	const { isCash, receivedInCents, changeInCents, isCashInsufficient } =
+		cashPreview(method, receivedInput, totalInCents);
 	const hasPendingItems = pendingItems.length > 0;
 	const canConfirm =
 		method !== null &&
 		!hasPendingItems &&
 		!isCashInsufficient &&
 		!isPending &&
-		!adjustmentError;
+		!adjustmentError &&
+		!partialError;
 
 	function handleOpenChange(nextOpen: boolean) {
 		if (submitting.current) {
@@ -181,6 +197,9 @@ export function CloseTabDialog({
 		}
 		setOpen(nextOpen);
 		if (!nextOpen) {
+			setPartial(false);
+			setPartialAmount(0);
+			setError(null);
 			setMethod(null);
 			setReceivedInput("");
 			setFeeEnabled(false);
@@ -203,28 +222,46 @@ export function CloseTabDialog({
 		submitting.current = true;
 		startTransition(async () => {
 			try {
-				const result = await closeTabAction(
-					tabId,
+				const input = paymentInput(
 					method,
-					isCash ? (receivedInCents ?? undefined) : undefined,
+					receivedInCents,
+					checkout,
 					adjustments
 				);
-
+				const key = JSON.stringify({ partial, totalInCents, ...input });
+				if (attempt.current?.key !== key) {
+					attempt.current = { key, id: crypto.randomUUID() };
+				}
+				setError(null);
+				const result = await submitPayment(
+					tabId,
+					input,
+					attempt.current.id,
+					partial ? partialAmount : undefined
+				);
 				if (!result.success) {
+					setError(result.title);
 					toast.error(result.title);
 					return;
 				}
 
-				const { changeInCents: change } = result.payment;
-				toast.success(result.title, {
-					description:
-						change === null
-							? "A mesa foi liberada."
-							: `Troco: ${formatPrice(change)}. A mesa foi liberada.`,
-				});
-				// The tab screen switches to its closed state, which offers the
-				// receipt and the way back to the tables.
+				if (result.partial) {
+					setPaidCheckout(result.split);
+					onPayment?.(result.split);
+					toast.success("Pagamento parcial registrado", {
+						description: `Saldo restante: ${formatPrice(result.split.remainingInCents)}`,
+					});
+				} else {
+					showSettlementSuccess(result.title, result.payment.changeInCents);
+				}
+				// Refresh the persisted balance or the final receipt after success.
 				setOpen(false);
+				attempt.current = null;
+				setPartial(false);
+				setPartialAmount(0);
+				setMethod(null);
+				setReceivedInput("");
+				router.refresh();
 			} finally {
 				submitting.current = false;
 			}
@@ -247,15 +284,15 @@ export function CloseTabDialog({
 				<DialogHeader>
 					<DialogTitle>Fechar conta</DialogTitle>
 					<DialogDescription>
-						Escolha a forma de pagamento. Ao confirmar, a comanda é encerrada e
-						a mesa fica livre.
+						Escolha a forma de pagamento. Você pode pagar parte do saldo ou
+						quitar o restante para encerrar a comanda e liberar a mesa.
 					</DialogDescription>
 				</DialogHeader>
 
 				<div className="space-y-5">
 					<fieldset
 						className="space-y-3"
-						disabled={isPending || hasPendingItems}
+						disabled={isPending || hasPendingItems || Boolean(checkout)}
 					>
 						<div className="flex items-center gap-2">
 							<input
@@ -282,34 +319,30 @@ export function CloseTabDialog({
 							Percentuais calculados sobre o subtotal.
 						</p>
 					</fieldset>
-					<dl
-						aria-label="Resumo do pagamento"
-						aria-live="polite"
-						className="space-y-2 rounded-md border px-4 py-3"
-					>
-						{[
-							["Subtotal", subtotalInCents],
-							["Taxa de serviço", totals?.serviceFeeInCents],
-							["Desconto", totals ? 0 - totals.discountInCents : undefined],
-							["Total", totals?.amountInCents],
-						].map(([label, value]) => (
-							<div
-								className="flex items-baseline justify-between gap-4"
-								key={label}
-							>
-								<dt>{label}</dt>
-								<dd
-									className={
-										label === "Total"
-											? "font-semibold text-2xl"
-											: "tabular-nums"
-									}
-								>
-									{typeof value === "number" ? formatPrice(value) : "—"}
-								</dd>
-							</div>
-						))}
-					</dl>
+					<PaymentSummary
+						balance={balance}
+						checkout={checkout}
+						subtotal={subtotalInCents}
+						totals={totals}
+					/>
+					<PartialFields
+						balance={balance}
+						disabled={isPending || hasPendingItems}
+						onChange={setPartialAmount}
+						partial={partial}
+						partialAmount={partialAmount}
+						partialError={partialError}
+						partialId={partialId}
+						toggle={() => {
+							setPartial(!partial);
+							setError(null);
+						}}
+					/>
+					{error && (
+						<p className="text-destructive text-sm" role="alert">
+							{error}
+						</p>
+					)}
 					{adjustmentError && (
 						<p className="text-destructive text-sm" role="alert">
 							{adjustmentError}
@@ -424,14 +457,18 @@ export function CloseTabDialog({
 				</div>
 
 				<DialogFooter>
-					<SplitBillBuilder
-						adjustments={adjustments}
-						disabled={hasPendingItems || Boolean(adjustmentError) || isPending}
-						items={items}
-						onCreated={() => setOpen(false)}
-						restaurant={restaurant}
-						tabId={tabId}
-					/>
+					{!checkout && (
+						<SplitBillBuilder
+							adjustments={adjustments}
+							disabled={
+								hasPendingItems || Boolean(adjustmentError) || isPending
+							}
+							items={items}
+							onCreated={() => setOpen(false)}
+							restaurant={restaurant}
+							tabId={tabId}
+						/>
+					)}
 					<Button
 						disabled={isPending}
 						onClick={() => handleOpenChange(false)}
@@ -444,7 +481,7 @@ export function CloseTabDialog({
 						{isPending ? (
 							<>
 								<Loader2 className="mr-2 size-4 animate-spin" />
-								Fechando...
+								Processando...
 							</>
 						) : (
 							`Confirmar ${formatPrice(totalInCents)}`
@@ -454,4 +491,179 @@ export function CloseTabDialog({
 			</DialogContent>
 		</Dialog>
 	);
+}
+
+function PaymentSummary({
+	subtotal,
+	totals,
+	checkout,
+	balance,
+}: {
+	subtotal: number;
+	totals: ReturnType<typeof calculateCheckoutTotals> | null;
+	checkout?: BillSplit;
+	balance: number;
+}) {
+	return (
+		<dl
+			aria-label="Resumo do pagamento"
+			aria-live="polite"
+			className="space-y-2 rounded-md border px-4 py-3"
+		>
+			{[
+				["Subtotal", checkout?.subtotalInCents ?? subtotal],
+				["Taxa de serviço", totals?.serviceFeeInCents],
+				["Desconto", totals ? 0 - totals.discountInCents : undefined],
+				["Total", totals?.amountInCents],
+				["Total pago", checkout?.paidInCents ?? 0],
+				["Saldo restante", balance],
+			].map(([label, value]) => (
+				<div className="flex items-baseline justify-between gap-4" key={label}>
+					<dt>{label}</dt>
+					<dd
+						className={
+							label === "Total" ? "font-semibold text-2xl" : "tabular-nums"
+						}
+					>
+						{typeof value === "number" ? formatPrice(value) : "—"}
+					</dd>
+				</div>
+			))}
+		</dl>
+	);
+}
+
+function PartialFields({
+	partial,
+	partialAmount,
+	partialId,
+	partialError,
+	balance,
+	disabled,
+	toggle,
+	onChange,
+}: {
+	partial: boolean;
+	partialAmount: number;
+	partialId: string;
+	partialError: boolean;
+	balance: number;
+	disabled: boolean;
+	toggle: () => void;
+	onChange: (cents: number) => void;
+}) {
+	return (
+		<div className="space-y-2">
+			<Button
+				aria-pressed={partial}
+				disabled={disabled}
+				onClick={toggle}
+				type="button"
+				variant="outline"
+			>
+				Pagamento parcial
+			</Button>
+			{partial && (
+				<>
+					<Label htmlFor={partialId}>Valor parcial (R$)</Label>
+					<CurrencyInput
+						disabled={disabled}
+						id={partialId}
+						name="partialAmount"
+						onValueChange={onChange}
+						valueInCents={partialAmount}
+					/>
+					<p className="text-sm">
+						Saldo após este pagamento:{" "}
+						{formatPrice(Math.max(0, balance - partialAmount))}
+					</p>
+					{partialError && (
+						<p className="text-destructive text-sm" role="alert">
+							Informe um valor positivo menor que o saldo. Para quitar, desative
+							Pagamento parcial.
+						</p>
+					)}
+				</>
+			)}
+		</div>
+	);
+}
+
+async function submitPayment(
+	tabId: string,
+	input: CheckoutAdjustments & {
+		method: PaymentMethod;
+		receivedInCents?: number;
+	},
+	requestId: string,
+	partialAmount?: number
+) {
+	if (partialAmount !== undefined) {
+		const result = await partialPaymentAction(tabId, {
+			...input,
+			requestId,
+			amountInCents: partialAmount,
+		});
+		return { ...result, partial: true as const };
+	}
+	const result = await closeTabAction(
+		tabId,
+		input.method,
+		input.receivedInCents,
+		{ serviceFee: input.serviceFee, discount: input.discount },
+		requestId
+	);
+	return { ...result, partial: false as const };
+}
+function showSettlementSuccess(title: string, change: number | null) {
+	toast.success(title, {
+		description:
+			change === null
+				? "A mesa foi liberada."
+				: `Troco: ${formatPrice(change)}. A mesa foi liberada.`,
+	});
+}
+
+function paymentPreview(
+	subtotalInCents: number,
+	adjustments: CheckoutAdjustments,
+	checkout: BillSplit | undefined,
+	partial: boolean,
+	partialAmount: number
+) {
+	const preview = getCheckoutPreview(subtotalInCents, adjustments);
+	const totals = checkout ?? preview.totals;
+	const adjustmentError = checkout ? null : preview.adjustmentError;
+	const balance = checkout?.remainingInCents ?? totals?.amountInCents ?? 0;
+	const totalInCents = partial ? partialAmount : balance;
+	const partialError =
+		partial && (partialAmount <= 0 || partialAmount >= balance);
+	return { totals, adjustmentError, balance, totalInCents, partialError };
+}
+
+function paymentInput(
+	method: PaymentMethod,
+	receivedInCents: number | null,
+	checkout: BillSplit | undefined,
+	adjustments: CheckoutAdjustments
+) {
+	return {
+		method,
+		receivedInCents:
+			method === "CASH" ? (receivedInCents ?? undefined) : undefined,
+		...(checkout ? {} : adjustments),
+	};
+}
+
+function cashPreview(
+	method: PaymentMethod | null,
+	receivedInput: string,
+	totalInCents: number
+) {
+	const isCash = method === "CASH";
+	const receivedInCents = parseAmountToCents(receivedInput);
+	const changeInCents =
+		receivedInCents === null ? null : receivedInCents - totalInCents;
+	const isCashInsufficient = isCash && (changeInCents ?? -1) < 0;
+	return { isCash, receivedInCents, changeInCents, isCashInsufficient };
 }

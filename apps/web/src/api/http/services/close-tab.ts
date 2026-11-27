@@ -6,6 +6,7 @@ export type PaymentMethod = "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "PIX";
 interface CloseTabRequest extends CheckoutAdjustments {
 	method: PaymentMethod;
 	receivedInCents?: number;
+	requestId?: string;
 	restaurant: string;
 	tabId: string;
 }
@@ -25,6 +26,7 @@ interface CloseTabResponse {
 
 export async function closeTab({
 	method,
+	requestId,
 	receivedInCents,
 	serviceFee,
 	discount,
@@ -33,7 +35,7 @@ export async function closeTab({
 }: CloseTabRequest) {
 	const result = await api
 		.post(`restaurants/${restaurant}/tabs/${tabId}/close`, {
-			json: { method, receivedInCents, serviceFee, discount },
+			json: { method, requestId, receivedInCents, serviceFee, discount },
 		})
 		.json<CloseTabResponse>();
 

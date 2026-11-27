@@ -31,6 +31,7 @@ interface GetTabResponse {
 		openedAt: string;
 		closedAt: string | null;
 		checkoutLocked: boolean;
+		checkoutMode?: string | null;
 		tableId: string;
 		table: {
 			number: number;

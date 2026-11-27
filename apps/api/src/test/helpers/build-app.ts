@@ -61,6 +61,7 @@ import { closeTabRoute } from "@/http/routes/tabs/close-tab";
 import { deliverTabItemRoute } from "@/http/routes/tabs/deliver-tab-item";
 import { getTabRoute } from "@/http/routes/tabs/get-tab";
 import { getTabReceiptRoute } from "@/http/routes/tabs/get-tab-receipt";
+import { partialPaymentRoute } from "@/http/routes/tabs/partial-payment";
 import { requestBillRoute } from "@/http/routes/tabs/request-bill";
 import { sendToKitchenRoute } from "@/http/routes/tabs/send-to-kitchen";
 import { splitBillRoutes } from "@/http/routes/tabs/split-bill";
@@ -116,6 +117,7 @@ export async function buildApp() {
 	await app.register(deliverTabItemRoute);
 	await app.register(closeTabRoute);
 	await app.register(splitBillRoutes);
+	await app.register(partialPaymentRoute);
 	await app.register(requestBillRoute);
 	await app.register(getTableBillRoute);
 	await app.register(getTabReceiptRoute);

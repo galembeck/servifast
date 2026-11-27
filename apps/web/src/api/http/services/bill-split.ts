@@ -26,7 +26,7 @@ export interface BillSplit {
 	discountInCents: number;
 	id: string;
 	invoices: BillInvoice[];
-	mode: "PEOPLE" | "ITEMS";
+	mode: "PEOPLE" | "ITEMS" | "PARTIAL";
 	paidInCents: number;
 	remainingInCents: number;
 	serviceFeeInCents: number;

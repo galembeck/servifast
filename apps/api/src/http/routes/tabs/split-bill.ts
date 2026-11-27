@@ -16,7 +16,7 @@ import { prisma } from "@/lib/prisma";
 import { ForbiddenError } from "../_errors/forbidden-error";
 import { NotFoundError } from "../_errors/not-found-error";
 
-const adjustment = z.discriminatedUnion("type", [
+export const adjustment = z.discriminatedUnion("type", [
 	z.object({
 		type: z.literal("FIXED"),
 		amountInCents: z.number().int().min(0).max(MAX_PAYMENT_IN_CENTS),
@@ -88,7 +88,7 @@ const split = amounts.extend({
 	closedAt: z.date().nullable(),
 	invoices: z.array(part.extend({ id: z.uuid(), payment: payment.nullable() })),
 });
-const splitResponse = { 200: z.object({ split: split.nullable() }) };
+export const splitResponse = { 200: z.object({ split: split.nullable() }) };
 const previewResponse = {
 	200: z.object({
 		preview: z.object({

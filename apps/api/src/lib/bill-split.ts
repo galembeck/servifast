@@ -51,7 +51,7 @@ export async function readBillSplit(
 		closedAt: split.tab.closedAt,
 	};
 }
-async function lockTab(
+export async function lockTab(
 	tx: Prisma.TransactionClient,
 	tabId: string,
 	restaurantId: string
@@ -66,7 +66,7 @@ async function lockTab(
 		);
 	}
 }
-async function tabForSplit(
+export async function tabForSplit(
 	db: Pick<PrismaClient, "tab">,
 	tabId: string,
 	restaurantId: string
@@ -226,85 +226,110 @@ export function payBillInvoice(
 		receivedInCents?: number;
 	}
 ) {
-	const cash = input.method === "CASH" ? (input.receivedInCents ?? null) : null;
 	return db.$transaction(
 		async (tx) => {
 			await lockTab(tx, tabId, restaurantId);
-			const split = await readBillSplit(tx, tabId, restaurantId);
-			const invoice = split?.invoices.find((part) => part.id === invoiceId);
-			if (!(split && invoice)) {
-				throw new NotFoundError(
-					"Parcela não encontrada",
-					TabException.TAB_NOT_FOUND
-				);
-			}
-
-			if (invoice.payment) {
-				if (
-					invoice.payment.method !== input.method ||
-					invoice.payment.receivedInCents !== cash
-				) {
-					throw new ConflictError(
-						"Parcela já paga",
-						PaymentException.INVOICE_ALREADY_PAID
-					);
-				}
-				return split;
-			}
-			const tab = await tx.tab.findUniqueOrThrow({
-				where: { id: tabId },
-				include: { items: { where: { status: { not: "CANCELLED" } } } },
-			});
-			if (tab.closedAt) {
-				throw new ConflictError("Comanda encerrada", TabException.TAB_NOT_OPEN);
-			}
-			const payment = calculatePayment(
-				[{ quantity: 1, unitPriceInCents: invoice.amountInCents }],
+			return payLockedInvoice(
+				tx,
+				tabId,
+				restaurantId,
+				invoiceId,
+				userId,
 				input
 			);
-			// The first receipt debits/reserves ALL delivered units, atomically with
-			// payment. A shortage rolls it all back. Later invoices never debit again,
-			// so an intervening stock change cannot strand money already received.
-			if (!tab.stockDebitedAt) {
-				await decrementStockForSale(tx, tab.items);
-				await tx.tab.update({
-					where: { id: tabId },
-					data: { stockDebitedAt: new Date() },
-				});
-			}
-			await tx.payment.create({
-				data: {
-					tabId,
-					restaurantId,
-					invoiceId,
-					paidById: userId,
-					method: input.method,
-					amountInCents: invoice.amountInCents,
-					subtotalInCents: invoice.subtotalInCents ?? invoice.amountInCents,
-					serviceFeeInCents: invoice.serviceFeeInCents ?? 0,
-					discountInCents: invoice.discountInCents ?? 0,
-					adjustments: { splitId: split.id },
-					receivedInCents: payment.cashReceived,
-					changeInCents: payment.changeInCents,
-				},
-			});
-			const pending = await tx.partialInvoice.count({
-				where: { splitId: split.id, payment: { is: null } },
-			});
-			if (pending === 0) {
-				await tx.tab.update({
-					where: { id: tabId },
-					data: { closedAt: new Date() },
-				});
-				await tx.table.update({
-					where: { id: tab.tableId },
-					data: { status: "FREE", occupiedSeats: 0 },
-				});
-			}
-			return readBillSplit(tx, tabId, restaurantId);
 		},
 		{ timeout: 15_000 }
 	);
+}
+export async function payLockedInvoice(
+	tx: Prisma.TransactionClient,
+	tabId: string,
+	restaurantId: string,
+	invoiceId: string,
+	userId: string,
+	input: {
+		method: "CASH" | "CREDIT_CARD" | "DEBIT_CARD" | "PIX";
+		receivedInCents?: number;
+	},
+	allowPartial = false
+) {
+	const cash = input.method === "CASH" ? (input.receivedInCents ?? null) : null;
+	const split = await readBillSplit(tx, tabId, restaurantId);
+	const invoice = split?.invoices.find((part) => part.id === invoiceId);
+	if (!(split && invoice) || (split.mode === "PARTIAL" && !allowPartial)) {
+		throw new NotFoundError(
+			"Parcela não encontrada",
+			TabException.TAB_NOT_FOUND
+		);
+	}
+
+	if (invoice.payment) {
+		if (
+			invoice.payment.method !== input.method ||
+			invoice.payment.receivedInCents !== cash
+		) {
+			throw new ConflictError(
+				"Parcela já paga",
+				PaymentException.INVOICE_ALREADY_PAID
+			);
+		}
+		return split;
+	}
+	const tab = await tx.tab.findUniqueOrThrow({
+		where: { id: tabId },
+		include: { items: { where: { status: { not: "CANCELLED" } } } },
+	});
+	if (tab.closedAt) {
+		throw new ConflictError("Comanda encerrada", TabException.TAB_NOT_OPEN);
+	}
+	const payment = calculatePayment(
+		[{ quantity: 1, unitPriceInCents: invoice.amountInCents }],
+		input
+	);
+	// The first receipt debits/reserves ALL delivered units, atomically with
+	// payment. A shortage rolls it all back. Later invoices never debit again,
+	// so an intervening stock change cannot strand money already received.
+	if (!tab.stockDebitedAt) {
+		await decrementStockForSale(tx, tab.items);
+		await tx.tab.update({
+			where: { id: tabId },
+			data: { stockDebitedAt: new Date() },
+		});
+	}
+	await tx.payment.create({
+		data: {
+			tabId,
+			restaurantId,
+			invoiceId,
+			paidById: userId,
+			method: input.method,
+			amountInCents: invoice.amountInCents,
+			subtotalInCents: invoice.subtotalInCents ?? invoice.amountInCents,
+			serviceFeeInCents: invoice.serviceFeeInCents ?? 0,
+			discountInCents: invoice.discountInCents ?? 0,
+			adjustments: { splitId: split.id },
+			receivedInCents: payment.cashReceived,
+			changeInCents: payment.changeInCents,
+		},
+	});
+	const pending = await tx.partialInvoice.count({
+		where: { splitId: split.id, payment: { is: null } },
+	});
+	const paid = await tx.payment.aggregate({
+		where: { tabId },
+		_sum: { amountInCents: true },
+	});
+	if (pending === 0 && paid._sum.amountInCents === split.amountInCents) {
+		await tx.tab.update({
+			where: { id: tabId },
+			data: { closedAt: new Date() },
+		});
+		await tx.table.update({
+			where: { id: tab.tableId },
+			data: { status: "FREE", occupiedSeats: 0 },
+		});
+	}
+	return readBillSplit(tx, tabId, restaurantId);
 }
 
 export async function assertUnsplitTab(

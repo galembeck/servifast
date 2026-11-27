@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { useLiveQuery } from "@/hooks/use-live-query";
 import { AddTabItemSheet } from "./add-tab-item-sheet";
 import { CloseTabDialog } from "./close-tab-dialog";
+import { PartialPaymentPanel } from "./partial-payment-panel";
 import { RequestBillButton } from "./request-bill-button";
 import { SendToKitchenButton } from "./send-to-kitchen-button";
 import { SplitBillPanel } from "./split-bill-panel";
@@ -198,6 +199,15 @@ function SplitCheckout({
 }) {
 	if (!(tab.checkoutLocked && canCloseTab)) {
 		return null;
+	}
+	if (tab.checkoutMode === "PARTIAL") {
+		return (
+			<PartialPaymentPanel
+				items={tab.items}
+				restaurant={restaurant}
+				tabId={tab.id}
+			/>
+		);
 	}
 	return (
 		<SplitBillPanel items={tab.items} restaurant={restaurant} tabId={tab.id} />

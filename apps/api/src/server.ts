@@ -17,6 +17,7 @@ import {
 import { getFinancialEntriesRoute } from "@/http/routes/billing/get-financial-entries";
 import { payFinancialEntryRoute } from "@/http/routes/billing/pay-financial-entry";
 import { getCashFlowRoute } from "@/http/routes/reports/get-cash-flow";
+import { partialPaymentRoute } from "@/http/routes/tabs/partial-payment";
 import { splitBillRoutes } from "@/http/routes/tabs/split-bill";
 import { errorHandler } from "./http/error-handler";
 import { authenticateWithPasswordRoute } from "./http/routes/auth/authenticate-with-password";
@@ -168,6 +169,7 @@ app.register(cancelTabItemRoute);
 app.register(deliverTabItemRoute);
 app.register(closeTabRoute);
 app.register(splitBillRoutes);
+app.register(partialPaymentRoute);
 app.register(requestBillRoute);
 app.register(getTableBillRoute);
 app.register(getTabReceiptRoute);

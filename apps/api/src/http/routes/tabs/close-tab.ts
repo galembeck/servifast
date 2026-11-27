@@ -10,6 +10,7 @@ import { PaymentException } from "@/http/_errors/exceptions/payment";
 import { TabException } from "@/http/_errors/exceptions/tab";
 import { auth } from "@/http/middlewares/auth";
 import { calculatePayment } from "@/lib/checkout-payment";
+import { settlePartialTab } from "@/lib/partial-payment";
 import { prisma } from "@/lib/prisma";
 import { decrementStockForSale } from "@/lib/stock";
 import { ConflictError } from "../_errors/conflict-error";
@@ -48,7 +49,7 @@ export async function closeTabRoute(app: FastifyInstance) {
 					tags: ["Tabs"],
 					summary: "/restaurants/:slug/tabs/:tabId/close",
 					description:
-						'Checkout: registers the payment (cash, credit/debit card or PIX), closes the tab and sets the table back to FREE in a single transaction. Every item must be DELIVERED or CANCELLED first (409 TAB_HAS_PENDING_ITEMS otherwise). Closing decrements the stock of every tracked product 1:1 with the units sold; if any product lacks stock, nothing is recorded and it returns 409 INSUFFICIENT_STOCK (description lists the shortages, e.g. "Chopp ×1"). The subtotal is computed server-side from every non-cancelled item. Optional serviceFee/discount accept FIXED amountInCents or PERCENT basisPoints (10% = 1000), both based on the subtotal and rounded half up. The adjusted total and calculation snapshot are stored on the payment; negative totals are rejected. For CASH, `receivedInCents` is required and must cover the total; the change is computed and stored.',
+						'Checkout: after free partial receipts, pays only the frozen remaining balance (requestId supports safe retries), without a second stock debit. Otherwise registers the full payment (cash, credit/debit card or PIX), closes the tab and sets the table back to FREE in a single transaction. Every item must be DELIVERED or CANCELLED first (409 TAB_HAS_PENDING_ITEMS otherwise). Closing decrements the stock of every tracked product 1:1 with the units sold; if any product lacks stock, nothing is recorded and it returns 409 INSUFFICIENT_STOCK (description lists the shortages, e.g. "Chopp ×1"). The subtotal is computed server-side from every non-cancelled item. Optional serviceFee/discount accept FIXED amountInCents or PERCENT basisPoints (10% = 1000), both based on the subtotal and rounded half up. The adjusted total and calculation snapshot are stored on the payment; negative totals are rejected. For CASH, `receivedInCents` is required and must cover the total; the change is computed and stored.',
 					security: [{ bearerAuth: [] }],
 					params: z.object({
 						slug: z.string(),
@@ -56,6 +57,7 @@ export async function closeTabRoute(app: FastifyInstance) {
 					}),
 					body: z.object({
 						method: paymentMethodSchema,
+						requestId: z.uuid().optional(),
 						receivedInCents: z
 							.number()
 							.int()
@@ -105,6 +107,24 @@ export async function closeTabRoute(app: FastifyInstance) {
 					);
 				}
 
+				if (
+					await prisma.billSplit.findFirst({
+						where: {
+							tabId,
+							mode: "PARTIAL",
+							tab: { restaurantId: restaurant.id },
+						},
+						select: { id: true },
+					})
+				) {
+					return settlePartialTab(
+						prisma,
+						tabId,
+						restaurant.id,
+						userId,
+						request.body
+					);
+				}
 				const tab = await prisma.tab.findUnique({
 					where: { id: tabId, restaurantId: restaurant.id },
 					select: {

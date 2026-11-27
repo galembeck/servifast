@@ -13,6 +13,10 @@ import {
 import { cancelTabItem } from "@/api/http/services/cancel-tab-item";
 import { closeTab, type PaymentMethod } from "@/api/http/services/close-tab";
 import { deliverTabItem } from "@/api/http/services/deliver-tab-item";
+import {
+	type PartialPaymentRequest,
+	registerPartialPayment,
+} from "@/api/http/services/partial-payment";
 import { requestBill } from "@/api/http/services/request-bill";
 import { sendToKitchen } from "@/api/http/services/send-to-kitchen";
 import { getCurrentRestaurant } from "@/providers/auth-provider";
@@ -238,13 +242,15 @@ export async function closeTabAction(
 	tabId: string,
 	method: PaymentMethod,
 	receivedInCents?: number,
-	adjustments: CheckoutAdjustments = {}
+	adjustments: CheckoutAdjustments = {},
+	requestId?: string
 ) {
 	// biome-ignore lint/style/noNonNullAssertion: always comes as string
 	const currentRestaurant = (await getCurrentRestaurant())!;
 
 	try {
 		const { payment } = await closeTab({
+			requestId,
 			restaurant: currentRestaurant,
 			tabId,
 			method,
@@ -394,6 +400,23 @@ export async function payInvoiceAction(
 			throw new Error("Missing restaurant");
 		}
 		const result = await payBillInvoice(restaurant, tabId, id, input);
+		refreshSplit(restaurant, tabId);
+		return { success: true as const, ...result };
+	} catch (error) {
+		return { success: false as const, title: splitError(error) };
+	}
+}
+
+export async function partialPaymentAction(
+	tabId: string,
+	input: PartialPaymentRequest
+) {
+	try {
+		const restaurant = await getCurrentRestaurant();
+		if (!restaurant) {
+			throw new Error("Missing restaurant");
+		}
+		const result = await registerPartialPayment(restaurant, tabId, input);
 		refreshSplit(restaurant, tabId);
 		return { success: true as const, ...result };
 	} catch (error) {

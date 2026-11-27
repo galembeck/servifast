@@ -1,6 +1,8 @@
 /** biome-ignore-all lint/style/noEnum: required by exception handler */
 
 export enum PaymentException {
+	INVALID_PARTIAL_PAYMENT = "INVALID_PARTIAL_PAYMENT",
+	PAYMENT_REQUEST_CONFLICT = "PAYMENT_REQUEST_CONFLICT",
 	BILL_SPLIT_LOCKED = "BILL_SPLIT_LOCKED",
 	INVALID_SPLIT = "INVALID_SPLIT",
 	SPLIT_CHANGED = "SPLIT_CHANGED",

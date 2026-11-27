@@ -7,11 +7,15 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { TabItem } from "@/api/http/services/get-tab";
-import { closeTabAction } from "../~actions/actions";
+import { closeTabAction, partialPaymentAction } from "../~actions/actions";
 import { CloseTabDialog } from "./close-tab-dialog";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 vi.mock("./split-bill-builder", () => ({ SplitBillBuilder: () => null }));
-vi.mock("../~actions/actions", () => ({ closeTabAction: vi.fn() }));
+vi.mock("../~actions/actions", () => ({
+	closeTabAction: vi.fn(),
+	partialPaymentAction: vi.fn(),
+}));
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 const item: TabItem = {
 	id: "00000000-0000-4000-8000-000000000001",
@@ -122,10 +126,64 @@ describe("checkout adjustment preview", () => {
 				{
 					serviceFee: { type: "PERCENT", basisPoints: 1000 },
 					discount: { type: "FIXED", amountInCents: 1000 },
-				}
+				},
+				expect.any(String)
 			)
 		);
 		expect(summary()).toContain("TotalR$73,05");
 		expect(screen.getByRole("dialog")).toBeTruthy();
+	});
+	it("blocks partial values outside the remaining balance", () => {
+		show();
+		fireEvent.click(screen.getByRole("button", { name: "Pagamento parcial" }));
+		fireEvent.click(screen.getByRole("button", { name: "PIX" }));
+		expect(
+			(
+				screen.getByRole("button", {
+					name: CONFIRM_BUTTON,
+				}) as HTMLButtonElement
+			).disabled
+		).toBe(true);
+		fireEvent.change(screen.getByLabelText("Valor parcial (R$)"), {
+			target: { value: "8000" },
+		});
+		expect(
+			(
+				screen.getByRole("button", {
+					name: CONFIRM_BUTTON,
+				}) as HTMLButtonElement
+			).disabled
+		).toBe(true);
+		expect(partialPaymentAction).not.toHaveBeenCalled();
+	});
+	it("keeps the amount and reuses the request identifier after failure", async () => {
+		vi.mocked(partialPaymentAction)
+			.mockReset()
+			.mockResolvedValue({ success: false, title: "Falha de teste" });
+		show();
+		fireEvent.click(screen.getByRole("button", { name: "Pagamento parcial" }));
+		fireEvent.change(screen.getByLabelText("Valor parcial (R$)"), {
+			target: { value: "3000" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: "PIX" }));
+		fireEvent.click(screen.getByRole("button", { name: CONFIRM_BUTTON }));
+		await screen.findByText("Falha de teste");
+		expect(
+			(
+				screen.getByLabelText("Valor parcial (R$)") as HTMLInputElement
+			).value.replace(/\s/g, "")
+		).toBe("R$30,00");
+		fireEvent.click(
+			await screen.findByRole("button", { name: CONFIRM_BUTTON })
+		);
+		await waitFor(() => expect(partialPaymentAction).toHaveBeenCalledTimes(2));
+		expect(vi.mocked(partialPaymentAction).mock.calls[0]?.[1]).toEqual(
+			vi.mocked(partialPaymentAction).mock.calls[1]?.[1]
+		);
+		expect(vi.mocked(partialPaymentAction).mock.calls[0]?.[1]).toMatchObject({
+			amountInCents: 3000,
+			method: "PIX",
+			requestId: expect.any(String),
+		});
 	});
 });
